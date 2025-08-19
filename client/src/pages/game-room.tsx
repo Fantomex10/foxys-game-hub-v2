@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Settings } from "lucide-react";
+import { ArrowLeft, Settings, Send } from "lucide-react";
 import type { User } from "@shared/schema";
 
 export default function GameRoom() {
@@ -19,6 +19,10 @@ export default function GameRoom() {
   });
 
   const [isConnected, setIsConnected] = useState(false);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const maxReconnectAttempts = 5;
+  const reconnectInterval = useRef<NodeJS.Timeout | null>(null);
   const [gameState, setGameState] = useState<any>(null);
   const [selectedSquare, setSelectedSquare] = useState<{row: number, col: number} | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<{row: number, col: number, piece: string} | null>(null);
@@ -45,8 +49,16 @@ export default function GameRoom() {
     const ws = connectWebSocket();
     
     return () => {
+      setIsReconnecting(false);
+      setReconnectAttempts(0);
+      
+      if (reconnectInterval.current) {
+        clearTimeout(reconnectInterval.current);
+        reconnectInterval.current = null;
+      }
+      
       if (ws) {
-        ws.close();
+        ws.close(1000, 'Component unmounting'); // Clean close
       }
     };
   }, [user, roomId, toast]);
@@ -59,6 +71,17 @@ export default function GameRoom() {
     }
   }, [roomData, gameState]);
 
+  // Handle connection state changes
+  useEffect(() => {
+    if (reconnectAttempts >= maxReconnectAttempts) {
+      toast({
+        title: 'Connection Failed',
+        description: 'Unable to reconnect to game server. Please refresh the page.',
+        variant: 'destructive'
+      });
+    }
+  }, [reconnectAttempts, maxReconnectAttempts, toast]);
+
   const connectWebSocket = () => {
     if (!user || !roomId) return;
 
@@ -69,13 +92,28 @@ export default function GameRoom() {
     wsRef.current = ws;
 
     ws.onopen = () => {
+      console.log('WebSocket connected');
       setIsConnected(true);
+      setIsReconnecting(false);
+      setReconnectAttempts(0);
+      
+      // Clear any pending reconnection attempts
+      if (reconnectInterval.current) {
+        clearTimeout(reconnectInterval.current);
+        reconnectInterval.current = null;
+      }
+      
       // Join the room
       ws.send(JSON.stringify({
         type: 'join_room',
         userId: user.id,
         roomId: roomId
       }));
+      
+      toast({
+        title: 'Connected',
+        description: 'Successfully connected to game server'
+      });
     };
 
     ws.onmessage = (event) => {
@@ -127,20 +165,71 @@ export default function GameRoom() {
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+      console.log('WebSocket closed:', event.code, event.reason);
       setIsConnected(false);
+      
+      // Don't attempt to reconnect if it was a clean close or if we're already reconnecting
+      if (event.code === 1000 || isReconnecting || reconnectAttempts >= maxReconnectAttempts) {
+        return;
+      }
+      
+      attemptReconnect();
     };
 
-    ws.onerror = () => {
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
       setIsConnected(false);
-      toast({
-        title: 'Connection Error',
-        description: 'Lost connection to the game server. Please refresh the page.',
-        variant: 'destructive'
-      });
+      
+      if (!isReconnecting && reconnectAttempts < maxReconnectAttempts) {
+        attemptReconnect();
+      }
     };
 
     return ws;
+  };
+
+  const attemptReconnect = () => {
+    if (isReconnecting || reconnectAttempts >= maxReconnectAttempts) {
+      return;
+    }
+
+    setIsReconnecting(true);
+    const newAttemptCount = reconnectAttempts + 1;
+    setReconnectAttempts(newAttemptCount);
+
+    const backoffDelay = Math.min(1000 * Math.pow(2, newAttemptCount - 1), 30000); // Exponential backoff, max 30s
+
+    console.log(`Attempting to reconnect (${newAttemptCount}/${maxReconnectAttempts}) in ${backoffDelay}ms`);
+    
+    toast({
+      title: 'Reconnecting...',
+      description: `Attempt ${newAttemptCount} of ${maxReconnectAttempts}`,
+      variant: 'default'
+    });
+
+    reconnectInterval.current = setTimeout(() => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      connectWebSocket();
+    }, backoffDelay);
+  };
+
+  const forceReconnect = () => {
+    setReconnectAttempts(0);
+    setIsReconnecting(false);
+    
+    if (reconnectInterval.current) {
+      clearTimeout(reconnectInterval.current);
+      reconnectInterval.current = null;
+    }
+    
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+    
+    connectWebSocket();
   };
 
   const makeMove = (move: any) => {
@@ -156,19 +245,19 @@ export default function GameRoom() {
         description: 'Reconnecting to game server...',
         variant: 'destructive'
       });
-      // Attempt to reconnect
-      const newWs = connectWebSocket();
-      if (newWs) {
-        setTimeout(() => {
-          if (newWs.readyState === WebSocket.OPEN) {
-            console.log('Retrying move after reconnection:', move);
-            newWs.send(JSON.stringify({
-              type: 'game_move',
-              move: move
-            }));
-          }
-        }, 1000);
-      }
+      // Force reconnect and queue the move for retry
+      forceReconnect();
+      
+      // Queue move to retry after successful reconnection
+      setTimeout(() => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          console.log('Retrying move after reconnection:', move);
+          wsRef.current.send(JSON.stringify({
+            type: 'game_move',
+            move: move
+          }));
+        }
+      }, 2000); // Wait 2 seconds for reconnection
     }
   };
 
@@ -512,8 +601,8 @@ export default function GameRoom() {
         description: 'Cannot send message - not connected to server',
         variant: 'destructive'
       });
-      // Try to reconnect
-      connectWebSocket();
+      // Try to force reconnect
+      forceReconnect();
     }
   };
 
@@ -679,10 +768,31 @@ export default function GameRoom() {
             
             <div className="flex items-center space-x-4">
               <div className={`flex items-center space-x-2`} data-testid="game-connection-status">
-                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <span className={`text-sm ${isConnected ? 'text-green-400' : 'text-red-400'}`}>
-                  {isConnected ? 'Connected' : 'Disconnected'}
+                <div className={`w-2 h-2 rounded-full ${
+                  isConnected ? 'bg-green-500' : 
+                  isReconnecting ? 'bg-yellow-500 animate-pulse' : 
+                  'bg-red-500'
+                }`}></div>
+                <span className={`text-sm ${
+                  isConnected ? 'text-green-400' : 
+                  isReconnecting ? 'text-yellow-400' : 
+                  'text-red-400'
+                }`}>
+                  {isConnected ? 'Connected' : 
+                   isReconnecting ? `Reconnecting... (${reconnectAttempts}/${maxReconnectAttempts})` :
+                   reconnectAttempts >= maxReconnectAttempts ? 'Connection Failed' :
+                   'Disconnected'}
                 </span>
+                {(!isConnected && !isReconnecting && reconnectAttempts < maxReconnectAttempts) && (
+                  <Button 
+                    onClick={forceReconnect} 
+                    size="sm" 
+                    variant="ghost" 
+                    className="text-xs px-2 py-1 h-6"
+                  >
+                    Retry
+                  </Button>
+                )}
               </div>
               <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white" data-testid="button-game-settings">
                 <Settings size={20} />
@@ -788,14 +898,26 @@ export default function GameRoom() {
 
             {/* Chat */}
             {room.enableChat && (
-              <Card className="bg-game-navy/50 backdrop-blur-sm border-gray-700/50">
-                <CardContent className="p-4">
-                  <Chat
-                    roomId={roomId}
-                    onSendMessage={handleSendMessage}
-                  />
-                </CardContent>
-              </Card>
+              <div className="bg-game-navy/50 backdrop-blur-sm border border-gray-700/50 rounded-lg p-4">
+                <h4 className="text-white font-semibold mb-4">Chat</h4>
+                <div className="space-y-2">
+                  <div className="h-32 bg-game-slate/30 rounded p-2 overflow-y-auto text-sm text-gray-300">
+                    <div className="text-blue-400">System: Welcome to the game!</div>
+                    <div className="text-gray-500 text-xs">Chat functionality coming soon...</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="Type a message..."
+                      className="flex-1 px-3 py-2 bg-game-slate/50 border border-gray-600 rounded text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                      disabled
+                    />
+                    <Button size="sm" disabled>
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
