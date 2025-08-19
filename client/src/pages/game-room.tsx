@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
-import { useParams, useLocation } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useWebSocket } from "@/hooks/use-websocket";
-import { useGameState } from "@/hooks/use-game-state";
+// TODO: Import WebSocket and game state hooks
 import { ArrowLeft, Settings } from "lucide-react";
 import type { User } from "@shared/schema";
 
 export default function GameRoom() {
-  const { roomId } = useParams();
+  const [match, params] = useRoute("/game/:roomId");
+  const roomId = params?.roomId;
   const [, setLocation] = useLocation();
   const [user, setUser] = useState<User | null>(null);
 
@@ -18,16 +18,18 @@ export default function GameRoom() {
     enabled: !!roomId,
   });
 
-  const { socket, isConnected } = useWebSocket(user?.id, roomId);
-  const { gameState, makeMove } = useGameState(socket, roomData?.gameState);
+  const [isConnected] = useState(false); // TODO: Implement WebSocket
+  const [gameState] = useState(null); // TODO: Implement game state
+  const makeMove = (move: any) => console.log('Move:', move);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("currentUser");
-    if (!savedUser) {
+    const userId = localStorage.getItem("userId");
+    const username = localStorage.getItem("username");
+    if (!userId || !username) {
       setLocation("/");
       return;
     }
-    setUser(JSON.parse(savedUser));
+    setUser({ id: userId, username, isGuest: true, createdAt: new Date() });
   }, [setLocation]);
 
   if (!user || isLoading) {

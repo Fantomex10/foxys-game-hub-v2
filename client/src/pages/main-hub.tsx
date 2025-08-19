@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreateRoomModal } from "@/components/create-room-modal";
-import { GameCard } from "@/components/game-card";
 import { Settings, Zap, Plus, Users, Wifi } from "lucide-react";
 import type { User, GameRoom } from "@shared/schema";
 
@@ -58,12 +57,13 @@ export default function MainHub() {
   });
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("currentUser");
-    if (!savedUser) {
+    const userId = localStorage.getItem("userId");
+    const username = localStorage.getItem("username");
+    if (!userId || !username) {
       setLocation("/");
       return;
     }
-    setUser(JSON.parse(savedUser));
+    setUser({ id: userId, username, isGuest: true, createdAt: new Date() });
   }, [setLocation]);
 
   if (!user) return null;
@@ -207,28 +207,36 @@ export default function MainHub() {
           <h3 className="text-xl font-semibold text-white mb-4" data-testid="text-available-games">Available Games</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {gameTypes.map((game) => (
-              <GameCard
-                key={game.id}
-                id={game.id}
-                name={game.name}
-                players={game.players}
-                image={game.image}
-                isActive={true}
-                onClick={() => {
-                  // TODO: Navigate to game-specific page or show game options
-                  console.log(`Selected game: ${game.name}`);
-                }}
-              />
+              <Card key={game.id} className="game-card group cursor-pointer" data-testid={`card-game-${game.id}`}>
+                <CardContent className="p-4">
+                  <div className="text-center">
+                    <div className="text-3xl mb-2">
+                      {game.id === 'chess' && '♔'}
+                      {game.id === 'hearts' && '♥'}
+                      {game.id === 'checkers' && '⚫'}
+                      {game.id === 'crazy8s' && '🎴'}
+                      {game.id === 'spades' && '♠'}
+                      {game.id === 'gofish' && '🎣'}
+                    </div>
+                    <h4 className="text-white font-semibold mb-1">{game.name}</h4>
+                    <p className="text-gray-400 text-sm">{game.players}</p>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
       </div>
 
-      <CreateRoomModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        userId={user.id}
-      />
+      {showCreateModal && (
+        <CreateRoomModal
+          onRoomCreated={(roomId) => {
+            setShowCreateModal(false);
+            setLocation(`/lobby/${roomId}`);
+          }}
+          onClose={() => setShowCreateModal(false)}
+        />
+      )}
     </div>
   );
 }

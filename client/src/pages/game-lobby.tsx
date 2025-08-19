@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
-import { useParams } from "wouter";
+import { useRoute } from "wouter";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlayerCard } from "@/components/player-card";
 import { Chat } from "@/components/chat";
-import { useWebSocket } from "@/hooks/use-websocket";
 import { ArrowLeft, Settings, Crown, UserPlus, Play, Check, X } from "lucide-react";
 import type { User, GameRoom, GameParticipant } from "@shared/schema";
 
 export default function GameLobby() {
-  const { roomId } = useParams();
+  const [match, params] = useRoute("/lobby/:roomId");
+  const roomId = params?.roomId;
   const [, setLocation] = useLocation();
   const [user, setUser] = useState<User | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -22,16 +22,11 @@ export default function GameLobby() {
     enabled: !!roomId,
   });
 
-  const { socket, isConnected } = useWebSocket(user?.id, roomId);
+  const [isConnected] = useState(false); // TODO: Implement WebSocket connection
 
   const toggleReadyMutation = useMutation({
     mutationFn: async () => {
-      // WebSocket message for ready toggle
-      if (socket) {
-        socket.send(JSON.stringify({
-          type: 'ready_toggle'
-        }));
-      }
+      // TODO: WebSocket ready toggle
       return true;
     },
     onSuccess: () => {
@@ -41,11 +36,7 @@ export default function GameLobby() {
 
   const startGameMutation = useMutation({
     mutationFn: async () => {
-      if (socket) {
-        socket.send(JSON.stringify({
-          type: 'start_game'
-        }));
-      }
+      // TODO: WebSocket start game
       return true;
     },
     onSuccess: () => {
@@ -54,34 +45,16 @@ export default function GameLobby() {
   });
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("currentUser");
-    if (!savedUser) {
+    const userId = localStorage.getItem("userId");
+    const username = localStorage.getItem("username");
+    if (!userId || !username) {
       setLocation("/");
       return;
     }
-    setUser(JSON.parse(savedUser));
+    setUser({ id: userId, username, isGuest: true, createdAt: new Date() });
   }, [setLocation]);
 
-  useEffect(() => {
-    if (socket) {
-      socket.addEventListener('message', (event) => {
-        const message = JSON.parse(event.data);
-        
-        switch (message.type) {
-          case 'participant_updated':
-            queryClient.invalidateQueries({ queryKey: ['/api/rooms', roomId] });
-            break;
-          case 'game_started':
-            setLocation(`/game/${roomId}`);
-            break;
-          case 'user_joined':
-          case 'user_left':
-            queryClient.invalidateQueries({ queryKey: ['/api/rooms', roomId] });
-            break;
-        }
-      });
-    }
-  }, [socket, roomId, queryClient, setLocation]);
+  // TODO: Implement WebSocket message handling
 
   if (!user || isLoading) {
     return (
@@ -255,7 +228,7 @@ export default function GameLobby() {
           {/* Chat & Settings */}
           <div className="space-y-6">
             {room.enableChat && (
-              <Chat roomId={room.id} userId={user.id} />
+              <Chat roomId={room.id} onSendMessage={(message) => console.log('Send message:', message)} />
             )}
 
             {/* Game Settings */}

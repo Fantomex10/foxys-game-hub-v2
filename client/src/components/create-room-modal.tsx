@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GameType } from '@shared/schema';
+import { Switch } from '@/components/ui/switch';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface CreateRoomModalProps {
   onRoomCreated: (roomId: string) => void;
@@ -15,54 +16,43 @@ interface CreateRoomModalProps {
 
 export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps) {
   const [roomName, setRoomName] = useState('');
-  const [gameType, setGameType] = useState<GameType>('chess');
+  const [gameType, setGameType] = useState('');
   const [maxPlayers, setMaxPlayers] = useState('4');
   const [isPrivate, setIsPrivate] = useState(false);
+  const [enableChat, setEnableChat] = useState(true);
+  const [allowSpectators, setAllowSpectators] = useState(true);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const createRoomMutation = useMutation({
     mutationFn: async (roomData: any) => {
-      const response = await fetch('/api/rooms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(roomData),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create room');
-      }
-      
-      return response.json();
+      const userId = localStorage.getItem('userId');
+      return apiRequest('POST', '/api/rooms', { ...roomData, hostId: userId });
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/rooms'] });
-      onRoomCreated(data.room.id);
       toast({
         title: 'Room Created',
-        description: `${roomName} is ready for players!`,
+        description: 'Your game room has been created successfully!'
       });
+      queryClient.invalidateQueries({ queryKey: ['/api/rooms'] });
+      onRoomCreated(data.room.id);
     },
     onError: () => {
       toast({
-        title: 'Failed to Create Room',
-        description: 'Please try again',
-        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to create room. Please try again.',
+        variant: 'destructive'
       });
-    },
+    }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!roomName.trim()) {
+  const handleSubmit = () => {
+    if (!roomName.trim() || !gameType) {
       toast({
-        title: 'Room Name Required',
-        description: 'Please enter a name for your room',
-        variant: 'destructive',
+        title: 'Validation Error',
+        description: 'Please fill in all required fields.',
+        variant: 'destructive'
       });
       return;
     }
@@ -72,99 +62,124 @@ export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps
       gameType,
       maxPlayers: parseInt(maxPlayers),
       isPrivate,
-      gameMode: 'multiplayer',
-      settings: {},
-      allowSpectators: true,
-      enableChat: true,
+      enableChat,
+      allowSpectators,
+      gameMode: 'multiplayer'
     });
   };
 
+  const gameTypes = [
+    { value: 'chess', label: 'Chess' },
+    { value: 'hearts', label: 'Hearts' },
+    { value: 'checkers', label: 'Checkers' },
+    { value: 'crazy8s', label: 'Crazy 8s' },
+    { value: 'spades', label: 'Spades' },
+    { value: 'gofish', label: 'Go Fish' }
+  ];
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Create Game Room</CardTitle>
-          <CardDescription>
-            Set up a new game for you and your friends
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="roomName">Room Name</Label>
-              <Input
-                id="roomName"
-                placeholder="Enter room name"
-                value={roomName}
-                onChange={(e) => setRoomName(e.target.value)}
-                data-testid="input-room-name"
-              />
-            </div>
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md bg-game-navy border-gray-700">
+        <DialogHeader>
+          <DialogTitle className="text-white">Create Game Room</DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="roomName" className="text-white">Room Name</Label>
+            <Input
+              id="roomName"
+              placeholder="Enter room name"
+              value={roomName}
+              onChange={(e) => setRoomName(e.target.value)}
+              className="bg-game-slate border-gray-600 text-white"
+              data-testid="input-room-name"
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="gameType">Game Type</Label>
-              <Select value={gameType} onValueChange={(value) => setGameType(value as GameType)}>
-                <SelectTrigger data-testid="select-game-type">
-                  <SelectValue placeholder="Select a game" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="chess">Chess</SelectItem>
-                  <SelectItem value="checkers">Checkers</SelectItem>
-                  <SelectItem value="hearts">Hearts</SelectItem>
-                  <SelectItem value="spades">Spades</SelectItem>
-                  <SelectItem value="crazy8s">Crazy 8s</SelectItem>
-                  <SelectItem value="gofish">Go Fish</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label htmlFor="gameType" className="text-white">Game Type</Label>
+            <Select value={gameType} onValueChange={setGameType}>
+              <SelectTrigger className="bg-game-slate border-gray-600 text-white" data-testid="select-game-type">
+                <SelectValue placeholder="Select a game" />
+              </SelectTrigger>
+              <SelectContent className="bg-game-navy border-gray-700">
+                {gameTypes.map((game) => (
+                  <SelectItem key={game.value} value={game.value} className="text-white hover:bg-game-slate">
+                    {game.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="maxPlayers">Max Players</Label>
-              <Select value={maxPlayers} onValueChange={setMaxPlayers}>
-                <SelectTrigger data-testid="select-max-players">
-                  <SelectValue placeholder="Select max players" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2">2 Players</SelectItem>
-                  <SelectItem value="4">4 Players</SelectItem>
-                  <SelectItem value="6">6 Players</SelectItem>
-                  <SelectItem value="8">8 Players</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label htmlFor="maxPlayers" className="text-white">Max Players</Label>
+            <Select value={maxPlayers} onValueChange={setMaxPlayers}>
+              <SelectTrigger className="bg-game-slate border-gray-600 text-white" data-testid="select-max-players">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-game-navy border-gray-700">
+                <SelectItem value="2" className="text-white hover:bg-game-slate">2 Players</SelectItem>
+                <SelectItem value="4" className="text-white hover:bg-game-slate">4 Players</SelectItem>
+                <SelectItem value="6" className="text-white hover:bg-game-slate">6 Players</SelectItem>
+                <SelectItem value="8" className="text-white hover:bg-game-slate">8 Players</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="isPrivate"
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="private" className="text-white">Private Room</Label>
+              <Switch
+                id="private"
                 checked={isPrivate}
-                onChange={(e) => setIsPrivate(e.target.checked)}
-                data-testid="checkbox-private"
+                onCheckedChange={setIsPrivate}
+                data-testid="switch-private"
               />
-              <Label htmlFor="isPrivate">Private Room</Label>
             </div>
 
-            <div className="flex space-x-2">
-              <Button 
-                type="submit" 
-                className="flex-1"
-                disabled={createRoomMutation.isPending}
-                data-testid="button-create-room"
-              >
-                {createRoomMutation.isPending ? 'Creating...' : 'Create Room'}
-              </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={onClose}
-                data-testid="button-cancel"
-              >
-                Cancel
-              </Button>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="chat" className="text-white">Enable Chat</Label>
+              <Switch
+                id="chat"
+                checked={enableChat}
+                onCheckedChange={setEnableChat}
+                data-testid="switch-chat"
+              />
             </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="spectators" className="text-white">Allow Spectators</Label>
+              <Switch
+                id="spectators"
+                checked={allowSpectators}
+                onCheckedChange={setAllowSpectators}
+                data-testid="switch-spectators"
+              />
+            </div>
+          </div>
+
+          <div className="flex space-x-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-600/20"
+              data-testid="button-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={createRoomMutation.isPending}
+              className="flex-1 game-button"
+              data-testid="button-create-room"
+            >
+              {createRoomMutation.isPending ? 'Creating...' : 'Create Room'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

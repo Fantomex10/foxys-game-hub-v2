@@ -1,79 +1,56 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Crown, User, Bot, Check, X } from 'lucide-react';
-import type { GameParticipant, User as UserType } from '@shared/schema';
+import { Crown, Check, Clock } from 'lucide-react';
 
 interface PlayerCardProps {
-  participant: GameParticipant;
-  user?: UserType;
-  isHost?: boolean;
-  canKick?: boolean;
-  onKick?: (participantId: string) => void;
+  participant: {
+    id: string;
+    userId: string;
+    isReady: boolean;
+    isSpectator: boolean;
+  };
+  isHost: boolean;
+  isCurrentUser: boolean;
 }
 
-export function PlayerCard({ participant, user, isHost, canKick, onKick }: PlayerCardProps) {
-  const getPlayerName = () => {
-    if (participant.playerType === 'bot') {
-      return `Bot (${participant.botDifficulty})`;
-    }
-    return user?.username || 'Unknown Player';
-  };
-
-  const getPlayerIcon = () => {
-    if (isHost) {
-      return <Crown className="h-4 w-4 text-yellow-500" />;
-    }
-    if (participant.playerType === 'bot') {
-      return <Bot className="h-4 w-4 text-blue-500" />;
-    }
-    return <User className="h-4 w-4 text-gray-500" />;
-  };
-
-  const getReadyIcon = () => {
-    if (participant.isSpectator) {
-      return null;
-    }
-    return participant.isReady ? (
-      <Check className="h-4 w-4 text-green-500" />
-    ) : (
-      <X className="h-4 w-4 text-red-500" />
-    );
+export function PlayerCard({ participant, isHost, isCurrentUser }: PlayerCardProps) {
+  const getUserInitials = (userId: string) => {
+    return userId.split('_').map(part => part[0]).join('').toUpperCase();
   };
 
   return (
-    <Card className="w-full" data-testid={`card-player-${participant.id}`}>
+    <Card className={`bg-game-navy/50 backdrop-blur-sm border-gray-700/50 ${isCurrentUser ? 'ring-2 ring-game-blue' : ''}`}>
       <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            {getPlayerIcon()}
-            <div>
-              <div className="font-medium">{getPlayerName()}</div>
-              <div className="flex items-center space-x-2">
-                {participant.isSpectator ? (
-                  <Badge variant="secondary">Spectator</Badge>
-                ) : (
-                  <div className="flex items-center space-x-1">
-                    {getReadyIcon()}
-                    <span className="text-sm text-muted-foreground">
-                      {participant.isReady ? 'Ready' : 'Not Ready'}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
+        <div className="flex items-center space-x-3" data-testid={`player-card-${participant.userId}`}>
+          <div className="player-avatar bg-gradient-to-br from-blue-500 to-purple-500">
+            <span>{getUserInitials(participant.userId)}</span>
           </div>
           
-          {canKick && onKick && !isHost && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onKick(participant.id)}
-              data-testid={`button-kick-${participant.id}`}
-            >
-              Kick
-            </Button>
-          )}
+          <div className="flex-1">
+            <div className="flex items-center space-x-2">
+              <p className="text-white font-medium">
+                {isCurrentUser ? 'You' : participant.userId}
+              </p>
+              {isHost && (
+                <Crown className="text-yellow-500" size={16} data-testid="host-crown" />
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-2 mt-1">
+              {participant.isReady ? (
+                <div className="flex items-center space-x-1">
+                  <Check className="text-green-400" size={14} />
+                  <span className="text-green-400 text-sm">Ready</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-1">
+                  <Clock className="text-yellow-400" size={14} />
+                  <span className="text-yellow-400 text-sm">Not Ready</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={`w-3 h-3 rounded-full ${participant.isReady ? 'bg-green-500' : 'bg-gray-500'}`} />
         </div>
       </CardContent>
     </Card>
