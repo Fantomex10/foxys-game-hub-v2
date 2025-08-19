@@ -21,6 +21,8 @@ export default function GameRoom() {
   const [isConnected, setIsConnected] = useState(false);
   const [gameState, setGameState] = useState<any>(null);
   const [selectedSquare, setSelectedSquare] = useState<{row: number, col: number} | null>(null);
+  const [draggedPiece, setDraggedPiece] = useState<{row: number, col: number, piece: string} | null>(null);
+  const [dragOverSquare, setDragOverSquare] = useState<{row: number, col: number} | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const { toast } = useToast();
 
@@ -181,12 +183,28 @@ export default function GameRoom() {
                       (rowIndex + colIndex) % 2 === 0 ? 'bg-amber-100' : 'bg-amber-800'
                     } ${
                       selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex ? 'ring-4 ring-blue-500' : ''
+                    } ${
+                      dragOverSquare?.row === rowIndex && dragOverSquare?.col === colIndex ? 'ring-4 ring-green-500 bg-green-200/30' : ''
                     }`}
                     onClick={() => handleChessSquareClick(rowIndex, colIndex)}
+                    onDragOver={(e) => handleDragOver(e, rowIndex, colIndex)}
+                    onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
+                    onDragLeave={() => setDragOverSquare(null)}
                     data-testid={`chess-square-${rowIndex}-${colIndex}`}
                   >
                     {piece && (
-                      <span className={piece === piece?.toUpperCase() ? 'text-white' : 'text-black'}>
+                      <span 
+                        className={`${piece === piece?.toUpperCase() ? 'text-white' : 'text-black'} select-none ${
+                          draggedPiece?.row === rowIndex && draggedPiece?.col === colIndex ? 'opacity-50' : ''
+                        }`}
+                        draggable={piece && isPlayerPiece(piece) && isCurrentPlayerTurn()}
+                        onDragStart={(e) => handleDragStart(e, rowIndex, colIndex, piece)}
+                        onDragEnd={() => handleDragEnd()}
+                        onTouchStart={(e) => handleTouchStart(e, rowIndex, colIndex, piece)}
+                        onTouchMove={(e) => handleTouchMove(e)}
+                        onTouchEnd={(e) => handleTouchEnd(e)}
+                        style={{ cursor: piece && isPlayerPiece(piece) && isCurrentPlayerTurn() ? 'grab' : 'default' }}
+                      >
                         {getChessPieceSymbol(piece)}
                       </span>
                     )}
@@ -260,17 +278,31 @@ export default function GameRoom() {
                       (rowIndex + colIndex) % 2 === 0 ? 'bg-amber-100' : 'bg-amber-800'
                     } ${
                       selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex ? 'ring-4 ring-blue-500' : ''
+                    } ${
+                      dragOverSquare?.row === rowIndex && dragOverSquare?.col === colIndex ? 'ring-4 ring-green-500 bg-green-200/30' : ''
                     }`}
                     onClick={() => handleCheckersSquareClick(rowIndex, colIndex)}
+                    onDragOver={(e) => handleDragOver(e, rowIndex, colIndex)}
+                    onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
+                    onDragLeave={() => setDragOverSquare(null)}
                     data-testid={`checkers-square-${rowIndex}-${colIndex}`}
                   >
                     {piece && (
                       <div
-                        className={`w-8 h-8 rounded-full border-2 ${
+                        className={`w-8 h-8 rounded-full border-2 select-none ${
                           piece.toLowerCase() === 'r'
                             ? 'bg-red-600 border-red-800'
                             : 'bg-black border-gray-800'
+                        } ${
+                          draggedPiece?.row === rowIndex && draggedPiece?.col === colIndex ? 'opacity-50' : ''
                         }`}
+                        draggable={piece && isCheckersPlayerPiece(piece) && isCurrentPlayerTurn()}
+                        onDragStart={(e) => handleDragStart(e, rowIndex, colIndex, piece)}
+                        onDragEnd={() => handleDragEnd()}
+                        onTouchStart={(e) => handleTouchStart(e, rowIndex, colIndex, piece)}
+                        onTouchMove={(e) => handleTouchMove(e)}
+                        onTouchEnd={(e) => handleTouchEnd(e)}
+                        style={{ cursor: piece && isCheckersPlayerPiece(piece) && isCurrentPlayerTurn() ? 'grab' : 'default' }}
                       />
                     )}
                   </div>
@@ -390,6 +422,140 @@ export default function GameRoom() {
     const isRedPlayer = playerIndex === 0;
     
     return isRedPlayer ? piece.toLowerCase() === 'r' : piece.toLowerCase() === 'b';
+  };
+
+  // Drag and Drop handlers
+  const handleDragStart = (e: React.DragEvent, row: number, col: number, piece: string) => {
+    if (!isCurrentPlayerTurn()) {
+      e.preventDefault();
+      return;
+    }
+    
+    setDraggedPiece({ row, col, piece });
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', `${row},${col}`);
+    
+    // Create a custom drag image
+    const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
+    dragImage.style.transform = 'rotate(5deg)';
+    e.dataTransfer.setDragImage(dragImage, 20, 20);
+  };
+
+  const handleDragOver = (e: React.DragEvent, row: number, col: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverSquare({ row, col });
+  };
+
+  const handleDrop = (e: React.DragEvent, row: number, col: number) => {
+    e.preventDefault();
+    setDragOverSquare(null);
+    
+    if (!draggedPiece) return;
+    
+    const { row: fromRow, col: fromCol } = draggedPiece;
+    
+    if (fromRow === row && fromCol === col) {
+      setDraggedPiece(null);
+      return;
+    }
+    
+    // Determine move type based on game
+    const moveType = roomData?.room?.gameType === 'chess' ? 'chess_move' : 'checkers_move';
+    
+    makeMove({
+      type: moveType,
+      from: { row: fromRow, col: fromCol },
+      to: { row, col }
+    });
+    
+    setDraggedPiece(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedPiece(null);
+    setDragOverSquare(null);
+  };
+
+  // Touch handlers for mobile
+  const touchStartPos = useRef<{x: number, y: number} | null>(null);
+  const touchDraggedPiece = useRef<{row: number, col: number, piece: string} | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent, row: number, col: number, piece: string) => {
+    if (!isCurrentPlayerTurn()) return;
+    
+    const touch = e.touches[0];
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    touchDraggedPiece.current = { row, col, piece };
+    
+    // Prevent default to avoid scrolling
+    e.preventDefault();
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchDraggedPiece.current || !touchStartPos.current) return;
+    
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartPos.current.x);
+    const deltaY = Math.abs(touch.clientY - touchStartPos.current.y);
+    
+    // Start drag if moved enough
+    if (deltaX > 10 || deltaY > 10) {
+      setDraggedPiece(touchDraggedPiece.current);
+      
+      // Find the square under the touch
+      const element = document.elementFromPoint(touch.clientX, touch.clientY);
+      const square = element?.closest('[data-testid*=\"square\"]');
+      if (square) {
+        const testId = square.getAttribute('data-testid');
+        const match = testId?.match(/(\\d+)-(\\d+)/);
+        if (match) {
+          const row = parseInt(match[1]);
+          const col = parseInt(match[2]);
+          setDragOverSquare({ row, col });
+        }
+      }
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchDraggedPiece.current) return;
+    
+    e.preventDefault();
+    
+    const touch = e.changedTouches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    const square = element?.closest('[data-testid*=\"square\"]');
+    
+    if (square && draggedPiece) {
+      const testId = square.getAttribute('data-testid');
+      const match = testId?.match(/(\\d+)-(\\d+)/);
+      if (match) {
+        const row = parseInt(match[1]);
+        const col = parseInt(match[2]);
+        
+        const { row: fromRow, col: fromCol } = touchDraggedPiece.current;
+        
+        if (fromRow !== row || fromCol !== col) {
+          // Determine move type based on game
+          const moveType = roomData?.room?.gameType === 'chess' ? 'chess_move' : 'checkers_move';
+          
+          makeMove({
+            type: moveType,
+            from: { row: fromRow, col: fromCol },
+            to: { row, col }
+          });
+        }
+      }
+    }
+    
+    // Reset touch state
+    touchStartPos.current = null;
+    touchDraggedPiece.current = null;
+    setDraggedPiece(null);
+    setDragOverSquare(null);
   };
 
   const getChessPieceSymbol = (piece: string) => {

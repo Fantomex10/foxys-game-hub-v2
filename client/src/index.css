@@ -176,3 +176,44 @@
 .chat-message .text {
   @apply text-gray-300 ml-2;
 }
+
+/* Drag and drop enhancements */
+.dragging {
+  @apply cursor-grabbing;
+}
+
+.drag-preview {
+  @apply transform rotate-6 scale-110 opacity-75;
+}
+
+/* Touch-friendly game pieces */
+@media (hover: none) and (pointer: coarse) {
+  [draggable="true"] {
+    @apply touch-none;
+  }
+  
+  .game-board-square {
+    @apply min-h-[3rem] min-w-[3rem];
+  }
+  
+  .chess-piece, .checkers-piece {
+    @apply transform scale-110;
+  }
+}
+
+/* Game board improvements */
+.game-board {
+  @apply touch-none select-none;
+}
+
+.game-piece {
+  @apply transition-all duration-200 ease-in-out;
+}
+
+.game-piece:active {
+  @apply scale-95;
+}
+
+.game-piece.dragging {
+  @apply opacity-50 scale-110 z-50;
+}
