@@ -12,18 +12,42 @@ interface WebSocketWithUser extends WebSocket {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Health check endpoint
-  app.get("/api/health", (req, res) => {
-    const healthCheck = {
-      status: "ok",
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || "development",
-      port: process.env.PORT || "5000",
-      version: "1.0.0"
-    };
-    
-    res.status(200).json(healthCheck);
+  // Health check endpoint with storage validation
+  app.get("/api/health", async (req, res) => {
+    try {
+      const healthCheck = {
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || "development",
+        port: process.env.PORT || "5000",
+        version: "1.0.0",
+        storage: "in-memory",
+        checks: {
+          storage: "ok"
+        }
+      };
+
+      // Test storage connectivity by attempting a simple operation
+      try {
+        await storage.getActiveRooms();
+        healthCheck.checks.storage = "ok";
+      } catch (error) {
+        healthCheck.status = "degraded";
+        healthCheck.checks.storage = "error";
+        console.error('Storage health check failed:', error);
+      }
+
+      const statusCode = healthCheck.status === "ok" ? 200 : 503;
+      res.status(statusCode).json(healthCheck);
+    } catch (error) {
+      res.status(503).json({
+        status: "error",
+        timestamp: new Date().toISOString(),
+        error: "Health check failed",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
   });
 
   // User routes
@@ -150,28 +174,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         switch (message.type) {
           case 'join_room':
-            ws.userId = message.userId;
-            ws.roomId = message.roomId;
-            
-            // Check if room is already playing and send current game state
-            const room = await storage.getGameRoom(message.roomId);
-            if (room && room.status === 'playing') {
-              const gameState = await storage.getGameState(message.roomId);
-              if (gameState) {
-                console.log(`[WebSocket] Sending current game state to user ${message.userId} joining active game`);
+            try {
+              ws.userId = message.userId;
+              ws.roomId = message.roomId;
+              
+              // Check if room is already playing and send current game state
+              const room = await storage.getGameRoom(message.roomId);
+              if (room && room.status === 'playing') {
+                const gameState = await storage.getGameState(message.roomId);
+                if (gameState) {
+                  console.log(`[WebSocket] Sending current game state to user ${message.userId} joining active game`);
+                  if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                      type: 'game_started',
+                      gameData: gameState.gameData
+                    }));
+                  }
+                }
+              }
+              
+              // Broadcast user joined
+              broadcastToRoom(ws.roomId!, {
+                type: 'user_joined',
+                userId: message.userId,
+                timestamp: new Date().toISOString()
+              });
+            } catch (error) {
+              console.error('[WebSocket] Error in join_room:', error);
+              if (ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
-                  type: 'game_started',
-                  gameData: gameState.gameData
+                  type: 'error',
+                  message: 'Failed to join room'
                 }));
               }
             }
-            
-            // Broadcast user joined
-            broadcastToRoom(ws.roomId!, {
-              type: 'user_joined',
-              userId: message.userId,
-              timestamp: new Date().toISOString()
-            });
             break;
 
           case 'leave_room':
@@ -186,45 +222,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
             break;
 
           case 'chat_message':
-            if (ws.roomId && ws.userId) {
-              const chatMessage = await storage.addChatMessage({
-                roomId: ws.roomId,
-                userId: ws.userId,
-                message: message.message
-              });
+            try {
+              if (ws.roomId && ws.userId) {
+                const chatMessage = await storage.addChatMessage({
+                  roomId: ws.roomId,
+                  userId: ws.userId,
+                  message: message.message
+                });
 
-              broadcastToRoom(ws.roomId, {
-                type: 'chat_message',
-                message: chatMessage
-              });
+                broadcastToRoom(ws.roomId, {
+                  type: 'chat_message',
+                  message: chatMessage
+                });
+              }
+            } catch (error) {
+              console.error('[WebSocket] Error in chat_message:', error);
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                  type: 'error',
+                  message: 'Failed to send chat message'
+                }));
+              }
             }
             break;
 
           case 'game_action':
-            if (ws.roomId && ws.userId) {
-              const room = await storage.getGameRoom(ws.roomId);
-              const participants = await storage.getParticipantsByRoom(ws.roomId);
-              const currentParticipant = participants.find(p => p.userId === ws.userId);
-              
-              if (room && currentParticipant) {
-                if (message.action === 'forfeit') {
-                  // End game with forfeit
-                  await storage.updateGameRoom(ws.roomId, { status: "finished" });
-                  
-                  broadcastToRoom(ws.roomId, {
-                    type: 'game_ended',
-                    reason: `Player forfeited the game`,
-                    winner: participants.find(p => p.id !== currentParticipant.id && !p.isSpectator)?.userId
-                  });
-                  
-                } else if (message.action === 'draw_offer') {
-                  // Broadcast draw offer to other players
-                  broadcastToRoom(ws.roomId, {
-                    type: 'draw_offer',
-                    fromPlayer: currentParticipant.userId,
-                    message: `Player offers a draw`
-                  });
+            try {
+              if (ws.roomId && ws.userId) {
+                const room = await storage.getGameRoom(ws.roomId);
+                const participants = await storage.getParticipantsByRoom(ws.roomId);
+                const currentParticipant = participants.find(p => p.userId === ws.userId);
+                
+                if (room && currentParticipant) {
+                  if (message.action === 'forfeit') {
+                    // End game with forfeit
+                    await storage.updateGameRoom(ws.roomId, { status: "finished" });
+                    
+                    broadcastToRoom(ws.roomId, {
+                      type: 'game_ended',
+                      reason: `Player forfeited the game`,
+                      winner: participants.find(p => p.id !== currentParticipant.id && !p.isSpectator)?.userId
+                    });
+                    
+                  } else if (message.action === 'draw_offer') {
+                    // Broadcast draw offer to other players
+                    broadcastToRoom(ws.roomId, {
+                      type: 'draw_offer',
+                      fromPlayer: currentParticipant.userId,
+                      message: `Player offers a draw`
+                    });
+                  }
                 }
+              }
+            } catch (error) {
+              console.error('[WebSocket] Error in game_action:', error);
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                  type: 'error',
+                  message: 'Failed to process game action'
+                }));
               }
             }
             break;
@@ -350,29 +406,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     const nextParticipant = participants.find(p => p.id === newGameData.currentTurn);
                     if (nextParticipant?.playerType === 'bot') {
                       setTimeout(async () => {
-                        const botMove = await aiService.getBotMove(room.gameType as any, newGameData, (nextParticipant.botDifficulty as any) || 'medium');
+                        try {
+                          const botMove = await aiService.getBotMove(room.gameType as any, newGameData, (nextParticipant.botDifficulty as any) || 'medium');
 
-                        if (botMove) {
-                          const botGameData = gameEngine.processMove(
-                            room.gameType as any,
-                            newGameData,
-                            botMove,
-                            nextParticipant.id,
-                            participants
-                          );
+                          if (botMove) {
+                            const botGameData = gameEngine.processMove(
+                              room.gameType as any,
+                              newGameData,
+                              botMove,
+                              nextParticipant.id,
+                              participants
+                            );
 
-                          await storage.updateGameState(ws.roomId!, {
-                            gameData: botGameData,
-                            currentTurn: botGameData.currentTurn,
-                            turnNumber: gameState.turnNumber! + 2
-                          });
+                            await storage.updateGameState(ws.roomId!, {
+                              gameData: botGameData,
+                              currentTurn: botGameData.currentTurn,
+                              turnNumber: gameState.turnNumber! + 2
+                            });
 
-                          broadcastToRoom(ws.roomId!, {
-                            type: 'game_updated',
-                            gameData: botGameData,
-                            currentTurn: botGameData.currentTurn,
-                            move: botMove
-                          });
+                            broadcastToRoom(ws.roomId!, {
+                              type: 'game_updated',
+                              gameData: botGameData,
+                              currentTurn: botGameData.currentTurn,
+                              move: botMove
+                            });
+                          }
+                        } catch (error) {
+                          console.error('[WebSocket] Error in bot move processing:', error);
                         }
                       }, 1000 + Math.random() * 2000); // 1-3 second delay for bot move
                     }
@@ -393,20 +453,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     ws.on('close', () => {
-      if (ws.roomId) {
-        broadcastToRoom(ws.roomId, {
-          type: 'user_left',
-          userId: ws.userId,
-          timestamp: new Date().toISOString()
-        });
+      try {
+        if (ws.roomId) {
+          broadcastToRoom(ws.roomId, {
+            type: 'user_left',
+            userId: ws.userId,
+            timestamp: new Date().toISOString()
+          });
+        }
+      } catch (error) {
+        console.error('[WebSocket] Error in close handler:', error);
       }
+    });
+
+    ws.on('error', (error) => {
+      console.error('[WebSocket] Connection error:', error);
     });
   });
 
   function broadcastToRoom(roomId: string, message: any) {
     wss.clients.forEach((client: WebSocketWithUser) => {
-      if (client.roomId === roomId && client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(message));
+      try {
+        if (client.roomId === roomId && client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(message));
+        }
+      } catch (error) {
+        console.error('Error broadcasting to client:', error);
+        // Remove the client if sending fails
+        try {
+          client.terminate();
+        } catch (terminateError) {
+          console.error('Error terminating client:', terminateError);
+        }
       }
     });
   }

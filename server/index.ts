@@ -7,16 +7,24 @@ function validateEnvironment() {
   const warnings: string[] = [];
   const errors: string[] = [];
 
-  // Check for required environment variables
+  // Check for database URL (optional for in-memory storage)
   if (!process.env.DATABASE_URL) {
-    errors.push('DATABASE_URL is required');
+    if (process.env.NODE_ENV === 'production') {
+      warnings.push('DATABASE_URL is not set - using in-memory storage (data will not persist)');
+    } else {
+      log('ℹ️  Using in-memory storage for development');
+    }
   }
 
   // Check for recommended environment variables
   if (!process.env.SESSION_SECRET) {
-    warnings.push('SESSION_SECRET is not set - using generated fallback (not recommended for production)');
-    // Generate a fallback SESSION_SECRET for development/demo purposes
-    process.env.SESSION_SECRET = `fallback-secret-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    if (process.env.NODE_ENV === 'production') {
+      errors.push('SESSION_SECRET is required in production');
+    } else {
+      warnings.push('SESSION_SECRET is not set - using generated fallback (not recommended for production)');
+      // Generate a fallback SESSION_SECRET for development/demo purposes
+      process.env.SESSION_SECRET = `fallback-secret-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
   }
 
   if (warnings.length > 0) {
@@ -135,12 +143,25 @@ app.use((req, res, next) => {
 process.on('uncaughtException', (error) => {
   log(`❌ Uncaught Exception: ${error.message}`);
   console.error(error.stack);
-  process.exit(1);
+  
+  // In production, try to gracefully shutdown instead of immediate exit
+  if (process.env.NODE_ENV === 'production') {
+    setTimeout(() => process.exit(1), 1000);
+  } else {
+    process.exit(1);
+  }
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   log(`❌ Unhandled Rejection at: ${promise}, reason: ${reason}`);
-  process.exit(1);
+  console.error('Unhandled Rejection:', reason);
+  
+  // In production, log but don't exit immediately to allow for recovery
+  if (process.env.NODE_ENV === 'production') {
+    log('⚠️  Continuing operation despite unhandled rejection in production');
+  } else {
+    process.exit(1);
+  }
 });
 
 // Graceful shutdown handling
