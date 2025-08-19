@@ -261,7 +261,7 @@ class GameEngine {
     const { card } = move.data;
     
     // Remove card from player's hand
-    newHands[playerId] = newHands[playerId].filter(c => c !== card);
+    newHands[playerId] = newHands[playerId].filter((c: string) => c !== card);
     
     const newTrick = [...(gameData.trick || []), { playerId, card }];
     
@@ -284,7 +284,7 @@ class GameEngine {
     const newHands = { ...gameData.hands };
     const { card } = move.data;
     
-    newHands[playerId] = newHands[playerId].filter(c => c !== card);
+    newHands[playerId] = newHands[playerId].filter((c: string) => c !== card);
     
     return {
       ...gameData,
@@ -297,7 +297,7 @@ class GameEngine {
     const { card, newSuit } = move.data;
     
     if (move.type === 'play_card') {
-      newHands[playerId] = newHands[playerId].filter(c => c !== card);
+      newHands[playerId] = newHands[playerId].filter((c: string) => c !== card);
       
       return {
         ...gameData,
@@ -328,11 +328,11 @@ class GameEngine {
   private processGoFishMove(gameData: GameData, move: GameMove, playerId: string): GameData {
     const { targetPlayer, rank } = move.data;
     const newHands = { ...gameData.hands };
-    const targetCards = newHands[targetPlayer].filter(card => card.startsWith(rank));
+    const targetCards = newHands[targetPlayer].filter((card: string) => card.startsWith(rank));
     
     if (targetCards.length > 0) {
       // Transfer cards
-      newHands[targetPlayer] = newHands[targetPlayer].filter(card => !card.startsWith(rank));
+      newHands[targetPlayer] = newHands[targetPlayer].filter((card: string) => !card.startsWith(rank));
       newHands[playerId] = [...newHands[playerId], ...targetCards];
     } else {
       // Go fish - draw a card

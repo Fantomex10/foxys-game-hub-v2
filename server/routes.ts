@@ -205,14 +205,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           case 'start_game':
             if (ws.roomId && ws.userId) {
+              console.log(`[WebSocket] start_game received from user ${ws.userId} in room ${ws.roomId}`);
               const room = await storage.getGameRoom(ws.roomId);
               if (room && room.hostId === ws.userId) {
                 const participants = await storage.getParticipantsByRoom(ws.roomId);
-                const allReady = participants.filter(p => !p.isSpectator).every(p => p.isReady);
+                const activePlayers = participants.filter(p => !p.isSpectator);
+                const readyPlayers = activePlayers.filter(p => p.isReady);
+                const allReady = activePlayers.every(p => p.isReady);
+                
+                console.log(`[WebSocket] Players: ${activePlayers.length}, Ready: ${readyPlayers.length}, All Ready: ${allReady}`);
                 
                 if (allReady) {
+                  console.log(`[WebSocket] Starting game of type: ${room.gameType}`);
                   // Initialize game state
                   const initialGameData = gameEngine.initializeGame(room.gameType as any, participants);
+                  console.log(`[WebSocket] Game data initialized:`, JSON.stringify(initialGameData, null, 2));
                   
                   await storage.createGameState({
                     roomId: ws.roomId,
@@ -222,11 +229,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
                   await storage.updateGameRoom(ws.roomId, { status: "playing" });
 
-                  broadcastToRoom(ws.roomId, {
+                  const gameStartMessage = {
                     type: 'game_started',
                     gameData: initialGameData
-                  });
+                  };
+                  
+                  console.log(`[WebSocket] Broadcasting game_started to room ${ws.roomId}`);
+                  broadcastToRoom(ws.roomId, gameStartMessage);
+                } else {
+                  console.log(`[WebSocket] Cannot start game - not all players ready. Active: ${activePlayers.length}, Ready: ${readyPlayers.length}`);
+                  ws.send(JSON.stringify({
+                    type: 'error',
+                    message: 'Not all players are ready'
+                  }));
                 }
+              } else {
+                console.log(`[WebSocket] Cannot start game - not host or room not found`);
+                ws.send(JSON.stringify({
+                  type: 'error',
+                  message: 'Only the host can start the game'
+                }));
               }
             }
             break;
