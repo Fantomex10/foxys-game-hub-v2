@@ -1,0 +1,178 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(210 25% 7.8431%);
+  --card: hsl(180 6.6667% 97.0588%);
+  --card-foreground: hsl(210 25% 7.8431%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(210 25% 7.8431%);
+  --primary: hsl(203.8863 88.2845% 53.1373%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(210 25% 7.8431%);
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(240 1.9608% 90%);
+  --muted-foreground: hsl(210 25% 7.8431%);
+  --accent: hsl(211.5789 51.3514% 92.7451%);
+  --accent-foreground: hsl(203.8863 88.2845% 53.1373%);
+  --destructive: hsl(356.3033 90.5579% 54.3137%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(201.4286 30.4348% 90.9804%);
+  --input: hsl(200 23.0769% 97.4510%);
+  --ring: hsl(202.8169 89.1213% 53.1373%);
+  --chart-1: hsl(203.8863 88.2845% 53.1373%);
+  --chart-2: hsl(159.7826 100% 36.0784%);
+  --chart-3: hsl(42.0290 92.8251% 56.2745%);
+  --chart-4: hsl(147.1429 78.5047% 41.9608%);
+  --chart-5: hsl(341.4894 75.2000% 50.9804%);
+  --sidebar: hsl(180 6.6667% 97.0588%);
+  --sidebar-foreground: hsl(210 25% 7.8431%);
+  --sidebar-primary: hsl(203.8863 88.2845% 53.1373%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(211.5789 51.3514% 92.7451%);
+  --sidebar-accent-foreground: hsl(203.8863 88.2845% 53.1373%);
+  --sidebar-border: hsl(205.0000 25.0000% 90.5882%);
+  --sidebar-ring: hsl(202.8169 89.1213% 53.1373%);
+  --font-sans: Inter, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 1.3rem;
+  --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 2px 4px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 4px 6px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 8px 10px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+  
+  /* Game Hub Colors */
+  --game-dark: hsl(220.9 39.3% 11%);
+  --game-navy: hsl(215.4 16.3% 16.9%);
+  --game-slate: hsl(215.3 13.8% 34.1%);
+  --game-blue: hsl(217.2 91.2% 59.8%);
+  --game-emerald: hsl(158.1 64.4% 51.6%);
+  --game-text: hsl(210 40% 98%);
+}
+
+.dark {
+  --background: hsl(220.9 39.3% 11%);
+  --foreground: hsl(210 40% 98%);
+  --card: hsl(215.4 16.3% 16.9%);
+  --card-foreground: hsl(210 40% 98%);
+  --popover: hsl(220.9 39.3% 11%);
+  --popover-foreground: hsl(210 40% 98%);
+  --primary: hsl(217.2 91.2% 59.8%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(215.3 13.8% 34.1%);
+  --secondary-foreground: hsl(210 40% 98%);
+  --muted: hsl(215.3 13.8% 34.1%);
+  --muted-foreground: hsl(217.9 10.6% 64.9%);
+  --accent: hsl(215.4 16.3% 16.9%);
+  --accent-foreground: hsl(210 40% 98%);
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(210 40% 98%);
+  --border: hsl(215.4 16.3% 16.9%);
+  --input: hsl(215.4 16.3% 16.9%);
+  --ring: hsl(217.2 91.2% 59.8%);
+  --chart-1: hsl(220 70% 50%);
+  --chart-2: hsl(160 60% 45%);
+  --chart-3: hsl(30 80% 55%);
+  --chart-4: hsl(280 65% 60%);
+  --chart-5: hsl(340 75% 55%);
+  --sidebar: hsl(215.4 16.3% 16.9%);
+  --sidebar-foreground: hsl(210 40% 98%);
+  --sidebar-primary: hsl(217.2 91.2% 59.8%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(215.3 13.8% 34.1%);
+  --sidebar-accent-foreground: hsl(210 40% 98%);
+  --sidebar-border: hsl(215.4 16.3% 16.9%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+  --font-sans: Inter, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 1.3rem;
+  --shadow-2xs: 0px 2px 0px 0px hsl(217.2 91.2% 59.8% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(217.2 91.2% 59.8% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(217.2 91.2% 59.8% / 0.00), 0px 1px 2px -1px hsl(217.2 91.2% 59.8% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(217.2 91.2% 59.8% / 0.00), 0px 1px 2px -1px hsl(217.2 91.2% 59.8% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(217.2 91.2% 59.8% / 0.00), 0px 2px 4px -1px hsl(217.2 91.2% 59.8% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(217.2 91.2% 59.8% / 0.00), 0px 4px 6px -1px hsl(217.2 91.2% 59.8% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(217.2 91.2% 59.8% / 0.00), 0px 8px 10px -1px hsl(217.2 91.2% 59.8% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(217.2 91.2% 59.8% / 0.00);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background: var(--game-dark);
+    color: var(--game-text);
+    font-family: var(--font-sans);
+  }
+}
+
+.glass-effect {
+  backdrop-filter: blur(10px);
+  background: hsl(215.3 13.8% 34.1% / 0.8);
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, var(--game-dark) 0%, var(--game-navy) 100%);
+}
+
+/* Game specific styles */
+.game-card {
+  background: hsl(var(--game-navy) / 0.5);
+  backdrop-filter: blur(4px);
+  @apply rounded-xl border border-gray-700/50 transition-all duration-200 cursor-pointer;
+}
+
+.game-card:hover {
+  transform: translateY(-2px);
+}
+
+.game-button {
+  background: linear-gradient(to right, hsl(var(--game-blue)), hsl(217 91% 60%));
+  @apply text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-[1.02];
+}
+
+.game-button-secondary {
+  @apply bg-gray-600/50 text-gray-300 font-semibold py-3 px-6 rounded-lg hover:bg-gray-600/70 transition-all duration-200 border border-gray-600;
+}
+
+.connection-indicator {
+  @apply flex items-center space-x-2;
+}
+
+.connection-indicator.online .dot {
+  @apply w-2 h-2 bg-green-500 rounded-full animate-pulse;
+}
+
+.connection-indicator.offline .dot {
+  @apply w-2 h-2 bg-red-500 rounded-full;
+}
+
+.player-avatar {
+  @apply w-12 h-12 rounded-full flex items-center justify-center text-white font-bold;
+}
+
+.chat-message {
+  @apply text-sm;
+}
+
+.chat-message .sender {
+  @apply font-medium;
+}
+
+.chat-message .text {
+  @apply text-gray-300 ml-2;
+}
