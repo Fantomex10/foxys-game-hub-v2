@@ -28,9 +28,11 @@ export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps
   const createRoomMutation = useMutation({
     mutationFn: async (roomData: any) => {
       const userId = localStorage.getItem('userId');
-      return apiRequest('POST', '/api/rooms', { ...roomData, hostId: userId });
+      const response = await apiRequest('POST', '/api/rooms', { ...roomData, hostId: userId });
+      return response.json();
     },
     onSuccess: (data) => {
+      console.log('Room creation response:', data); // Debug log
       toast({
         title: 'Room Created',
         description: 'Your game room has been created successfully!'
@@ -84,7 +86,7 @@ export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps
           <DialogTitle className="text-foreground">Create Game Room</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
             <Label htmlFor="roomName" className="text-foreground">Room Name</Label>
             <Input
@@ -128,7 +130,7 @@ export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps
             </Select>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label htmlFor="private" className="text-foreground">Private Room</Label>
               <Switch
