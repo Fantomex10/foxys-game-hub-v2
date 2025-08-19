@@ -146,6 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('message', async (data) => {
       try {
         const message = JSON.parse(data.toString());
+        console.log(`[WebSocket] Received message:`, message.type, message);
         
         switch (message.type) {
           case 'join_room':
@@ -381,11 +382,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             break;
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('WebSocket message error:', error);
+        console.error('Raw message data:', data.toString());
         ws.send(JSON.stringify({
           type: 'error',
-          message: 'Invalid message format'
+          message: `Invalid message format: ${error.message}`
         }));
       }
     });

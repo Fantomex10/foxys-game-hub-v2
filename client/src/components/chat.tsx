@@ -14,9 +14,10 @@ interface ChatMessage {
 interface ChatProps {
   roomId: string;
   onSendMessage: (message: string) => void;
+  messages?: ChatMessage[];
 }
 
-export function Chat({ roomId, onSendMessage }: ChatProps) {
+export function Chat({ roomId, onSendMessage, messages: externalMessages }: ChatProps) {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -26,6 +27,13 @@ export function Chat({ roomId, onSendMessage }: ChatProps) {
       timestamp: new Date()
     }
   ]);
+  
+  // Update messages when external messages change
+  useEffect(() => {
+    if (externalMessages) {
+      setMessages(prev => [...prev, ...externalMessages]);
+    }
+  }, [externalMessages]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {

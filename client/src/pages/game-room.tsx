@@ -42,6 +42,26 @@ export default function GameRoom() {
   useEffect(() => {
     if (!user || !roomId) return;
 
+    const ws = connectWebSocket();
+    
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, [user, roomId, toast]);
+
+  // Load existing game state if room is already playing
+  useEffect(() => {
+    if (roomData?.room?.status === 'playing' && roomData?.gameState && !gameState) {
+      console.log('Loading existing game state from room data:', roomData.gameState);
+      setGameState(roomData.gameState.gameData);
+    }
+  }, [roomData, gameState]);
+
+  const connectWebSocket = () => {
+    if (!user || !roomId) return;
+
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws`;
     
@@ -76,7 +96,8 @@ export default function GameRoom() {
             break;
             
           case 'chat_message':
-            // Chat messages are handled by Chat component
+            // Forward to chat component by adding to messages if needed
+            console.log('Chat message received:', message);
             break;
             
           case 'game_ended':
@@ -119,31 +140,35 @@ export default function GameRoom() {
       });
     };
 
-    return () => {
-      ws.close();
-    };
-  }, [user, roomId, toast]);
-
-  // Load existing game state if room is already playing
-  useEffect(() => {
-    if (roomData?.room?.status === 'playing' && roomData?.gameState && !gameState) {
-      console.log('Loading existing game state from room data:', roomData.gameState);
-      setGameState(roomData.gameState.gameData);
-    }
-  }, [roomData, gameState]);
+    return ws;
+  };
 
   const makeMove = (move: any) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      console.log('Sending move:', move);
       wsRef.current.send(JSON.stringify({
         type: 'game_move',
         move: move
       }));
     } else {
       toast({
-        title: 'Connection Error',
-        description: 'Cannot make move - not connected to game server',
+        title: 'Connection Lost',
+        description: 'Reconnecting to game server...',
         variant: 'destructive'
       });
+      // Attempt to reconnect
+      const newWs = connectWebSocket();
+      if (newWs) {
+        setTimeout(() => {
+          if (newWs.readyState === WebSocket.OPEN) {
+            console.log('Retrying move after reconnection:', move);
+            newWs.send(JSON.stringify({
+              type: 'game_move',
+              move: move
+            }));
+          }
+        }, 1000);
+      }
     }
   };
 
@@ -474,12 +499,21 @@ export default function GameRoom() {
 
   const handleSendMessage = (message: string) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && user) {
+      console.log('Sending chat message:', message);
       wsRef.current.send(JSON.stringify({
         type: 'chat_message',
         message: message,
         userId: user.id,
         username: user.username
       }));
+    } else {
+      toast({
+        title: 'Connection Error',
+        description: 'Cannot send message - not connected to server',
+        variant: 'destructive'
+      });
+      // Try to reconnect
+      connectWebSocket();
     }
   };
 
@@ -751,6 +785,18 @@ export default function GameRoom() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Chat */}
+            {room.enableChat && (
+              <Card className="bg-game-navy/50 backdrop-blur-sm border-gray-700/50">
+                <CardContent className="p-4">
+                  <Chat
+                    roomId={roomId}
+                    onSendMessage={handleSendMessage}
+                  />
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
