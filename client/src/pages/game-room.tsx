@@ -24,6 +24,9 @@ export default function GameRoom() {
   const maxReconnectAttempts = 5;
   const reconnectInterval = useRef<NodeJS.Timeout | null>(null);
   const [gameState, setGameState] = useState<any>(null);
+  const [isGameLoading, setIsGameLoading] = useState(false);
+  const [moveInProgress, setMoveInProgress] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<{row: number, col: number} | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<{row: number, col: number, piece: string} | null>(null);
   const [dragOverSquare, setDragOverSquare] = useState<{row: number, col: number} | null>(null);
@@ -111,8 +114,9 @@ export default function GameRoom() {
       }));
       
       toast({
-        title: 'Connected',
-        description: 'Successfully connected to game server'
+        title: '🟢 Connected',
+        description: 'Successfully connected to game server',
+        className: 'toast-success'
       });
     };
 
@@ -125,10 +129,21 @@ export default function GameRoom() {
           case 'game_updated':
             console.log('Received game state message:', message.type, message.gameData);
             setGameState(message.gameData);
+            setMoveInProgress(false); // Reset move state on game update
+            setLastError(null);
+            
             if (message.type === 'game_started') {
+              setIsGameLoading(false);
               toast({
-                title: 'Game Started!',
-                description: 'The game has begun. Make your move!'
+                title: '🎮 Game Started!',
+                description: 'The game has begun. Make your move!',
+                className: 'toast-success'
+              });
+            } else {
+              toast({
+                title: '✅ Move Completed',
+                description: 'Your move has been processed',
+                className: 'toast-success'
               });
             }
             break;
@@ -153,10 +168,16 @@ export default function GameRoom() {
             break;
             
           case 'error':
+            const errorMsg = message.message || 'An error occurred in the game';
+            setLastError(errorMsg);
+            setMoveInProgress(false);
+            setIsGameLoading(false);
+            
             toast({
-              title: 'Game Error',
-              description: message.message || 'An error occurred in the game',
-              variant: 'destructive'
+              title: '❌ Game Error',
+              description: errorMsg,
+              variant: 'destructive',
+              className: 'toast-error'
             });
             break;
         }
@@ -203,9 +224,10 @@ export default function GameRoom() {
     console.log(`Attempting to reconnect (${newAttemptCount}/${maxReconnectAttempts}) in ${backoffDelay}ms`);
     
     toast({
-      title: 'Reconnecting...',
+      title: '🔄 Reconnecting...',
       description: `Attempt ${newAttemptCount} of ${maxReconnectAttempts}`,
-      variant: 'default'
+      variant: 'default',
+      className: 'toast-info'
     });
 
     reconnectInterval.current = setTimeout(() => {
@@ -233,18 +255,41 @@ export default function GameRoom() {
   };
 
   const makeMove = (move: any) => {
+    if (moveInProgress) {
+      toast({
+        title: 'Move in Progress',
+        description: 'Please wait for the current move to complete',
+        variant: 'default'
+      });
+      return;
+    }
+
+    setMoveInProgress(true);
+    setLastError(null);
+
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       console.log('Sending move:', move);
       wsRef.current.send(JSON.stringify({
         type: 'game_move',
         move: move
       }));
+      
+      // Set timeout to reset move state if no response
+      setTimeout(() => {
+        setMoveInProgress(false);
+      }, 5000);
     } else {
+      setMoveInProgress(false);
+      const errorMsg = 'Connection lost while making move';
+      setLastError(errorMsg);
+      
       toast({
-        title: 'Connection Lost',
+        title: '🔴 Connection Lost',
         description: 'Reconnecting to game server...',
-        variant: 'destructive'
+        variant: 'destructive',
+        className: 'toast-error'
       });
+      
       // Force reconnect and queue the move for retry
       forceReconnect();
       
@@ -252,10 +297,13 @@ export default function GameRoom() {
       setTimeout(() => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
           console.log('Retrying move after reconnection:', move);
+          setMoveInProgress(true);
           wsRef.current.send(JSON.stringify({
             type: 'game_move',
             move: move
           }));
+          
+          setTimeout(() => setMoveInProgress(false), 5000);
         }
       }, 2000); // Wait 2 seconds for reconnection
     }
@@ -290,9 +338,12 @@ export default function GameRoom() {
       return (
         <Card className="bg-game-navy/50 backdrop-blur-sm border-gray-700/50">
           <CardContent className="p-8">
-            <div className="text-center">
-              <h3 className="text-xl font-semibold text-white mb-4">Game Starting...</h3>
-              <p className="text-gray-400">Please wait while the game initializes.</p>
+            <div className="text-center" data-testid="game-initializing">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="loading-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full" />
+                <h3 className="text-xl font-semibold text-white loading-pulse">Game Starting...</h3>
+                <p className="text-gray-400">Please wait while the game initializes.</p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -878,20 +929,44 @@ export default function GameRoom() {
                     onClick={handleForfeit}
                     variant="outline" 
                     size="sm" 
-                    className="w-full text-gray-300 border-gray-600 hover:bg-gray-600/20"
+                    className="w-full text-gray-300 border-gray-600 hover:bg-gray-600/20 transition-all duration-200 hover:scale-105"
                     data-testid="button-forfeit"
+                    disabled={moveInProgress}
                   >
-                    Forfeit Game
+                    {moveInProgress ? (
+                      <div className="flex items-center gap-2">
+                        <div className="loading-spin w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+                        Processing...
+                      </div>
+                    ) : (
+                      'Forfeit Game'
+                    )}
                   </Button>
                   <Button 
                     onClick={handleDrawOffer}
                     variant="outline" 
                     size="sm" 
-                    className="w-full text-gray-300 border-gray-600 hover:bg-gray-600/20"
+                    className="w-full text-gray-300 border-gray-600 hover:bg-gray-600/20 transition-all duration-200 hover:scale-105"
                     data-testid="button-request-draw"
+                    disabled={moveInProgress}
                   >
-                    Request Draw
+                    {moveInProgress ? (
+                      <div className="flex items-center gap-2">
+                        <div className="loading-spin w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+                        Processing...
+                      </div>
+                    ) : (
+                      'Request Draw'
+                    )}
                   </Button>
+                  {lastError && (
+                    <div className="mt-2 p-3 bg-red-950/50 border border-red-500/50 rounded-md text-red-400 text-sm error-shake" data-testid="error-message">
+                      <div className="flex items-center gap-2">
+                        <span className="text-red-500">⚠️</span>
+                        <span>{lastError}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
