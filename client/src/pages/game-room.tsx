@@ -65,6 +65,7 @@ export default function GameRoom() {
         switch (message.type) {
           case 'game_started':
           case 'game_updated':
+            console.log('Received game state message:', message.type, message.gameData);
             setGameState(message.gameData);
             if (message.type === 'game_started') {
               toast({
@@ -104,6 +105,14 @@ export default function GameRoom() {
       ws.close();
     };
   }, [user, roomId, toast]);
+
+  // Load existing game state if room is already playing
+  useEffect(() => {
+    if (roomData?.room?.status === 'playing' && roomData?.gameState && !gameState) {
+      console.log('Loading existing game state from room data:', roomData.gameState);
+      setGameState(roomData.gameState.gameData);
+    }
+  }, [roomData, gameState]);
 
   const makeMove = (move: any) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {

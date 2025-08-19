@@ -87,6 +87,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const participants = await storage.getParticipantsByRoom(room.id);
       const gameState = await storage.getGameState(room.id);
       
+      console.log(`[API] Room ${req.params.id} status: ${room.status}, gameState exists: ${!!gameState}`);
+      
       res.json({ room, participants, gameState });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -149,6 +151,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           case 'join_room':
             ws.userId = message.userId;
             ws.roomId = message.roomId;
+            
+            // Check if room is already playing and send current game state
+            const room = await storage.getGameRoom(message.roomId);
+            if (room && room.status === 'playing') {
+              const gameState = await storage.getGameState(message.roomId);
+              if (gameState) {
+                console.log(`[WebSocket] Sending current game state to user ${message.userId} joining active game`);
+                ws.send(JSON.stringify({
+                  type: 'game_started',
+                  gameData: gameState.gameData
+                }));
+              }
+            }
             
             // Broadcast user joined
             broadcastToRoom(ws.roomId!, {
