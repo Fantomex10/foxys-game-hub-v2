@@ -61,6 +61,14 @@ export default {
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
+        game: {
+          dark: "var(--game-dark)",
+          navy: "var(--game-navy)",
+          slate: "var(--game-slate)",
+          blue: "var(--game-blue)",
+          emerald: "var(--game-emerald)",
+          text: "var(--game-text)",
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)"],

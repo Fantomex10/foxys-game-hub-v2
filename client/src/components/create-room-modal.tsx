@@ -79,33 +79,33 @@ export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-game-navy border-gray-700">
+      <DialogContent className="sm:max-w-md bg-card border-border shadow-lg">
         <DialogHeader>
-          <DialogTitle className="text-white">Create Game Room</DialogTitle>
+          <DialogTitle className="text-foreground">Create Game Room</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
           <div>
-            <Label htmlFor="roomName" className="text-white">Room Name</Label>
+            <Label htmlFor="roomName" className="text-foreground">Room Name</Label>
             <Input
               id="roomName"
               placeholder="Enter room name"
               value={roomName}
               onChange={(e) => setRoomName(e.target.value)}
-              className="bg-game-slate border-gray-600 text-white"
+              className="bg-input border-border text-foreground placeholder:text-muted-foreground"
               data-testid="input-room-name"
             />
           </div>
 
           <div>
-            <Label htmlFor="gameType" className="text-white">Game Type</Label>
+            <Label htmlFor="gameType" className="text-foreground">Game Type</Label>
             <Select value={gameType} onValueChange={setGameType}>
-              <SelectTrigger className="bg-game-slate border-gray-600 text-white" data-testid="select-game-type">
+              <SelectTrigger className="bg-input border-border text-foreground" data-testid="select-game-type">
                 <SelectValue placeholder="Select a game" />
               </SelectTrigger>
-              <SelectContent className="bg-game-navy border-gray-700">
+              <SelectContent className="bg-popover border-border">
                 {gameTypes.map((game) => (
-                  <SelectItem key={game.value} value={game.value} className="text-white hover:bg-game-slate">
+                  <SelectItem key={game.value} value={game.value} className="text-foreground hover:bg-accent hover:text-accent-foreground">
                     {game.label}
                   </SelectItem>
                 ))}
@@ -114,23 +114,23 @@ export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps
           </div>
 
           <div>
-            <Label htmlFor="maxPlayers" className="text-white">Max Players</Label>
+            <Label htmlFor="maxPlayers" className="text-foreground">Max Players</Label>
             <Select value={maxPlayers} onValueChange={setMaxPlayers}>
-              <SelectTrigger className="bg-game-slate border-gray-600 text-white" data-testid="select-max-players">
+              <SelectTrigger className="bg-input border-border text-foreground" data-testid="select-max-players">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-game-navy border-gray-700">
-                <SelectItem value="2" className="text-white hover:bg-game-slate">2 Players</SelectItem>
-                <SelectItem value="4" className="text-white hover:bg-game-slate">4 Players</SelectItem>
-                <SelectItem value="6" className="text-white hover:bg-game-slate">6 Players</SelectItem>
-                <SelectItem value="8" className="text-white hover:bg-game-slate">8 Players</SelectItem>
+              <SelectContent className="bg-popover border-border">
+                <SelectItem value="2" className="text-foreground hover:bg-accent hover:text-accent-foreground">2 Players</SelectItem>
+                <SelectItem value="4" className="text-foreground hover:bg-accent hover:text-accent-foreground">4 Players</SelectItem>
+                <SelectItem value="6" className="text-foreground hover:bg-accent hover:text-accent-foreground">6 Players</SelectItem>
+                <SelectItem value="8" className="text-foreground hover:bg-accent hover:text-accent-foreground">8 Players</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label htmlFor="private" className="text-white">Private Room</Label>
+              <Label htmlFor="private" className="text-foreground">Private Room</Label>
               <Switch
                 id="private"
                 checked={isPrivate}
@@ -140,7 +140,7 @@ export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps
             </div>
 
             <div className="flex items-center justify-between">
-              <Label htmlFor="chat" className="text-white">Enable Chat</Label>
+              <Label htmlFor="chat" className="text-foreground">Enable Chat</Label>
               <Switch
                 id="chat"
                 checked={enableChat}
@@ -150,7 +150,7 @@ export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps
             </div>
 
             <div className="flex items-center justify-between">
-              <Label htmlFor="spectators" className="text-white">Allow Spectators</Label>
+              <Label htmlFor="spectators" className="text-foreground">Allow Spectators</Label>
               <Switch
                 id="spectators"
                 checked={allowSpectators}
@@ -164,7 +164,7 @@ export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps
             <Button
               variant="outline"
               onClick={onClose}
-              className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-600/20"
+              className="flex-1"
               data-testid="button-cancel"
             >
               Cancel
@@ -172,7 +172,7 @@ export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps
             <Button
               onClick={handleSubmit}
               disabled={createRoomMutation.isPending}
-              className="flex-1 game-button"
+              className="flex-1"
               data-testid="button-create-room"
             >
               {createRoomMutation.isPending ? 'Creating...' : 'Create Room'}
