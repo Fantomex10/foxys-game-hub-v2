@@ -24,6 +24,8 @@ export default function GameRoom() {
   const [draggedPiece, setDraggedPiece] = useState<{row: number, col: number, piece: string} | null>(null);
   const [dragOverSquare, setDragOverSquare] = useState<{row: number, col: number} | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const touchStartPos = useRef<{x: number, y: number} | null>(null);
+  const touchDraggedPiece = useRef<{row: number, col: number, piece: string} | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -478,9 +480,6 @@ export default function GameRoom() {
   };
 
   // Touch handlers for mobile
-  const touchStartPos = useRef<{x: number, y: number} | null>(null);
-  const touchDraggedPiece = useRef<{row: number, col: number, piece: string} | null>(null);
-
   const handleTouchStart = (e: React.TouchEvent, row: number, col: number, piece: string) => {
     if (!isCurrentPlayerTurn()) return;
     

@@ -1,0 +1,48 @@
+index-BpOWoYR_.js:207 Room creation response: {name: 'Test 3', gameType: 'checkers', maxPlayers: 4, gameMode: 'multiplayer', isPrivate: false, …}
+index-BpOWoYR_.js:40 Error: Minified React error #310; visit https://reactjs.org/docs/error-decoder.html?invariant=310 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at Ct (index-BpOWoYR_.js:38:17593)
+    at Object.Nm [as useRef] (index-BpOWoYR_.js:38:20394)
+    at te.useRef (index-BpOWoYR_.js:9:6344)
+    at Ak (index-BpOWoYR_.js:207:65127)
+    at Hu (index-BpOWoYR_.js:38:16998)
+    at Sc (index-BpOWoYR_.js:40:3139)
+    at ig (index-BpOWoYR_.js:40:44737)
+    at rg (index-BpOWoYR_.js:40:39727)
+    at Hw (index-BpOWoYR_.js:40:39655)
+    at fl (index-BpOWoYR_.js:40:39508)
+wc @ index-BpOWoYR_.js:40
+Fm.n.callback @ index-BpOWoYR_.js:40
+kf @ index-BpOWoYR_.js:38
+Wf @ index-BpOWoYR_.js:40
+Jm @ index-BpOWoYR_.js:40
+Uw @ index-BpOWoYR_.js:40
+Qw @ index-BpOWoYR_.js:40
+tr @ index-BpOWoYR_.js:40
+eg @ index-BpOWoYR_.js:40
+E @ index-BpOWoYR_.js:25
+L @ index-BpOWoYR_.js:25
+index-BpOWoYR_.js:38 Uncaught Error: Minified React error #310; visit https://reactjs.org/docs/error-decoder.html?invariant=310 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at Ct (index-BpOWoYR_.js:38:17593)
+    at Object.Nm [as useRef] (index-BpOWoYR_.js:38:20394)
+    at te.useRef (index-BpOWoYR_.js:9:6344)
+    at Ak (index-BpOWoYR_.js:207:65127)
+    at Hu (index-BpOWoYR_.js:38:16998)
+    at Sc (index-BpOWoYR_.js:40:3139)
+    at ig (index-BpOWoYR_.js:40:44737)
+    at rg (index-BpOWoYR_.js:40:39727)
+    at Hw (index-BpOWoYR_.js:40:39655)
+    at fl (index-BpOWoYR_.js:40:39508)
+Ct @ index-BpOWoYR_.js:38
+Nm @ index-BpOWoYR_.js:38
+te.useRef @ index-BpOWoYR_.js:9
+Ak @ index-BpOWoYR_.js:207
+Hu @ index-BpOWoYR_.js:38
+Sc @ index-BpOWoYR_.js:40
+ig @ index-BpOWoYR_.js:40
+rg @ index-BpOWoYR_.js:40
+Hw @ index-BpOWoYR_.js:40
+fl @ index-BpOWoYR_.js:40
+Oc @ index-BpOWoYR_.js:40
+eg @ index-BpOWoYR_.js:40
+E @ index-BpOWoYR_.js:25
+L @ index-BpOWoYR_.js:25
