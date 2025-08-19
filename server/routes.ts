@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { insertUserSchema, insertGameRoomSchema, insertGameParticipantSchema, insertChatMessageSchema } from "@shared/schema";
 import { gameEngine } from "./services/game-engine";
-import { aiService } from "./services/ai-service";
+// import { aiService } from "./services/ai-service"; // TODO: Implement AI service
 
 interface WebSocketWithUser extends WebSocket {
   userId?: string;
@@ -22,7 +22,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user = await storage.createUser({ username, isGuest: isGuest || false });
       }
       
-      res.json(user);
+      res.json({ user });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
@@ -198,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 if (allReady) {
                   // Initialize game state
-                  const initialGameData = gameEngine.initializeGame(room.gameType as GameType, participants);
+                  const initialGameData = gameEngine.initializeGame(room.gameType as any, participants);
                   
                   await storage.createGameState({
                     roomId: ws.roomId,
@@ -228,13 +228,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 if (currentParticipant && gameState.currentTurn === currentParticipant.id) {
                   const newGameData = gameEngine.processMove(
-                    room.gameType as GameType,
-                    gameState.gameData,
+                    room.gameType as any,
+                    gameState.gameData as any,
                     message.move,
                     currentParticipant.id
                   );
 
-                  const nextTurn = gameEngine.getNextTurn(room.gameType as GameType, participants, currentParticipant.id);
+                  const nextTurn = gameEngine.getNextTurn(room.gameType as any, participants, currentParticipant.id);
                   
                   await storage.updateGameState(ws.roomId, {
                     gameData: newGameData,
@@ -254,21 +254,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     const nextParticipant = participants.find(p => p.id === nextTurn);
                     if (nextParticipant?.playerType === 'bot') {
                       setTimeout(async () => {
-                        const botMove = await aiService.getBotMove(
-                          room.gameType as GameType,
-                          newGameData,
-                          nextParticipant.botDifficulty || 'medium'
-                        );
+                        // TODO: Implement AI service
+                        const botMove = null; // await aiService.getBotMove(room.gameType, newGameData, nextParticipant.botDifficulty || 'medium');
 
                         if (botMove) {
                           const botGameData = gameEngine.processMove(
-                            room.gameType as GameType,
+                            room.gameType as any,
                             newGameData,
                             botMove,
                             nextParticipant.id
                           );
 
-                          const nextAfterBot = gameEngine.getNextTurn(room.gameType as GameType, participants, nextParticipant.id);
+                          const nextAfterBot = gameEngine.getNextTurn(room.gameType as any, participants, nextParticipant.id);
                           
                           await storage.updateGameState(ws.roomId!, {
                             gameData: botGameData,

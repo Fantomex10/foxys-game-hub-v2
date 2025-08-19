@@ -36,7 +36,7 @@ export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps
         description: 'Your game room has been created successfully!'
       });
       queryClient.invalidateQueries({ queryKey: ['/api/rooms'] });
-      onRoomCreated(data.room.id);
+      onRoomCreated(data.id);
     },
     onError: () => {
       toast({
