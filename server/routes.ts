@@ -12,6 +12,20 @@ interface WebSocketWithUser extends WebSocket {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint
+  app.get("/api/health", (req, res) => {
+    const healthCheck = {
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || "development",
+      port: process.env.PORT || "5000",
+      version: "1.0.0"
+    };
+    
+    res.status(200).json(healthCheck);
+  });
+
   // User routes
   app.post("/api/auth/login", async (req, res) => {
     try {

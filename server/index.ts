@@ -2,6 +2,35 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Environment variable validation
+function validateEnvironment() {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+
+  // Check for required environment variables
+  if (!process.env.DATABASE_URL) {
+    errors.push('DATABASE_URL is required');
+  }
+
+  // Check for recommended environment variables
+  if (!process.env.SESSION_SECRET) {
+    warnings.push('SESSION_SECRET is not set - using generated fallback (not recommended for production)');
+    // Generate a fallback SESSION_SECRET for development/demo purposes
+    process.env.SESSION_SECRET = `fallback-secret-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  if (warnings.length > 0) {
+    warnings.forEach(warning => log(`⚠️  WARNING: ${warning}`));
+  }
+
+  if (errors.length > 0) {
+    errors.forEach(error => log(`❌ ERROR: ${error}`));
+    throw new Error(`Environment validation failed: ${errors.join(', ')}`);
+  }
+
+  log('✅ Environment variables validated');
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -37,14 +66,24 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    // Validate environment variables before starting
+    validateEnvironment();
+    
+    const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    // Log the error for debugging
+    log(`❌ Error ${status}: ${message}`);
+    if (err.stack && process.env.NODE_ENV === 'development') {
+      console.error(err.stack);
+    }
+
     res.status(status).json({ message });
-    throw err;
+    // Don't re-throw the error to prevent crashes
   });
 
   // importantly only setup vite in development and after
@@ -66,6 +105,51 @@ app.use((req, res, next) => {
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`🚀 Server successfully started on port ${port}`);
+    log(`🌐 Health check available at http://localhost:${port}/api/health`);
   });
-})();
+
+  // Handle server startup errors
+  server.on('error', (error: any) => {
+    if (error.code === 'EADDRINUSE') {
+      log(`❌ Port ${port} is already in use`);
+    } else {
+      log(`❌ Server error: ${error.message}`);
+    }
+    process.exit(1);
+  });
+
+  } catch (error: any) {
+    log(`❌ Failed to start server: ${error.message}`);
+    if (error.stack && process.env.NODE_ENV === 'development') {
+      console.error(error.stack);
+    }
+    process.exit(1);
+  }
+})().catch((error) => {
+  log(`❌ Unhandled startup error: ${error.message}`);
+  process.exit(1);
+});
+
+// Handle uncaught exceptions and unhandled rejections
+process.on('uncaughtException', (error) => {
+  log(`❌ Uncaught Exception: ${error.message}`);
+  console.error(error.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  log(`❌ Unhandled Rejection at: ${promise}, reason: ${reason}`);
+  process.exit(1);
+});
+
+// Graceful shutdown handling
+process.on('SIGTERM', () => {
+  log('🛑 SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  log('🛑 SIGINT received, shutting down gracefully');
+  process.exit(0);
+});
