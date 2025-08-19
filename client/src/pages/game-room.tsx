@@ -75,6 +75,24 @@ export default function GameRoom() {
             }
             break;
             
+          case 'chat_message':
+            // Chat messages are handled by Chat component
+            break;
+            
+          case 'game_ended':
+            toast({
+              title: 'Game Over',
+              description: message.reason || 'The game has ended'
+            });
+            break;
+            
+          case 'draw_offer':
+            toast({
+              title: 'Draw Offer',
+              description: message.message || 'Your opponent offers a draw'
+            });
+            break;
+            
           case 'error':
             toast({
               title: 'Game Error',
@@ -373,15 +391,23 @@ export default function GameRoom() {
     }
   };
 
+  const getPlayerColor = () => {
+    if (!gameState || !roomData || !user) return null;
+    const currentParticipant = roomData.participants.find((p: any) => p.userId === user.id);
+    if (!currentParticipant || !gameState.playerColors) return null;
+    return gameState.playerColors[currentParticipant.id];
+  };
+
   const isPlayerPiece = (piece: string) => {
-    if (!gameState || !roomData) return false;
-    const currentParticipant = roomData.participants.find((p: any) => p.userId === user?.id);
-    if (!currentParticipant) return false;
+    const playerColor = getPlayerColor();
+    if (!playerColor) return false;
     
-    const playerIndex = roomData.participants.filter((p: any) => !p.isSpectator).findIndex((p: any) => p.id === currentParticipant.id);
-    const isWhitePlayer = playerIndex === 0;
-    
-    return isWhitePlayer ? piece === piece.toUpperCase() : piece === piece.toLowerCase();
+    if (room.gameType === 'chess') {
+      return playerColor === 'white' ? piece === piece.toUpperCase() : piece === piece.toLowerCase();
+    } else if (room.gameType === 'checkers') {
+      return playerColor === 'red' ? piece === 'r' || piece === 'R' : piece === 'b' || piece === 'B';
+    }
+    return false;
   };
 
   const isCurrentPlayerTurn = () => {
@@ -425,14 +451,36 @@ export default function GameRoom() {
   };
 
   const isCheckersPlayerPiece = (piece: string) => {
-    if (!gameState || !roomData) return false;
-    const currentParticipant = roomData.participants.find((p: any) => p.userId === user?.id);
-    if (!currentParticipant) return false;
-    
-    const playerIndex = roomData.participants.filter((p: any) => !p.isSpectator).findIndex((p: any) => p.id === currentParticipant.id);
-    const isRedPlayer = playerIndex === 0;
-    
-    return isRedPlayer ? piece.toLowerCase() === 'r' : piece.toLowerCase() === 'b';
+    return isPlayerPiece(piece);
+  };
+
+  const handleForfeit = () => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'game_action',
+        action: 'forfeit'
+      }));
+    }
+  };
+
+  const handleDrawOffer = () => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'game_action',
+        action: 'draw_offer'
+      }));
+    }
+  };
+
+  const handleSendMessage = (message: string) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && user) {
+      wsRef.current.send(JSON.stringify({
+        type: 'chat_message',
+        message: message,
+        userId: user.id,
+        username: user.username
+      }));
+    }
   };
 
   // Drag and Drop handlers
@@ -584,7 +632,7 @@ export default function GameRoom() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setLocation(`/lobby/${roomId}`)}
+                onClick={() => setLocation('/hub')}
                 className="text-gray-400 hover:text-white"
                 data-testid="button-back-to-lobby"
               >
@@ -627,7 +675,18 @@ export default function GameRoom() {
                   <div className="flex justify-between">
                     <span className="text-gray-300 text-sm">Turn:</span>
                     <span className="text-white text-sm" data-testid="text-current-turn">
-                      {gameState ? (isCurrentPlayerTurn() ? 'Your Turn' : 'Opponent\'s Turn') : 'Loading...'}
+                      {gameState ? (
+                        <div className="flex items-center gap-2">
+                          <span className={`w-3 h-3 rounded-full ${
+                            getPlayerColor() === 'white' ? 'bg-white border border-gray-400' : 
+                            getPlayerColor() === 'red' ? 'bg-red-500' : 
+                            getPlayerColor() === 'black' ? 'bg-gray-800' : 'bg-gray-500'
+                          }`}></span>
+                          <span>You are {getPlayerColor() || 'Unknown'}</span>
+                          <span className="mx-2">•</span>
+                          <span>{isCurrentPlayerTurn() ? 'Your Turn' : 'Opponent\'s Turn'}</span>
+                        </div>
+                      ) : 'Loading...'}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -672,6 +731,7 @@ export default function GameRoom() {
                 <h4 className="text-white font-semibold mb-4">Actions</h4>
                 <div className="space-y-2">
                   <Button 
+                    onClick={handleForfeit}
                     variant="outline" 
                     size="sm" 
                     className="w-full text-gray-300 border-gray-600 hover:bg-gray-600/20"
@@ -680,6 +740,7 @@ export default function GameRoom() {
                     Forfeit Game
                   </Button>
                   <Button 
+                    onClick={handleDrawOffer}
                     variant="outline" 
                     size="sm" 
                     className="w-full text-gray-300 border-gray-600 hover:bg-gray-600/20"

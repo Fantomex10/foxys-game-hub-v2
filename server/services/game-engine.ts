@@ -39,7 +39,18 @@ class GameEngine {
     }
   }
 
-  processMove(gameType: GameType, gameData: GameData, move: GameMove, playerId: string): GameData {
+  processMove(gameType: GameType, gameData: GameData, move: GameMove, playerId: string, allParticipants: any[]): GameData {
+    const updatedGameData = this.processGameSpecificMove(gameType, gameData, move, playerId);
+    
+    // Update currentTurn to next player's participant ID
+    const nonSpectatorParticipants = allParticipants.filter(p => !p.isSpectator);
+    const nextTurnParticipantId = nonSpectatorParticipants[updatedGameData.turn || 0]?.id;
+    updatedGameData.currentTurn = nextTurnParticipantId;
+    
+    return updatedGameData;
+  }
+  
+  private processGameSpecificMove(gameType: GameType, gameData: GameData, move: GameMove, playerId: string): GameData {
     switch (gameType) {
       case 'chess':
         return this.processChessMove(gameData, move, playerId);

@@ -199,6 +199,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             break;
 
+          case 'game_action':
+            if (ws.roomId && ws.userId) {
+              const room = await storage.getGameRoom(ws.roomId);
+              const participants = await storage.getParticipantsByRoom(ws.roomId);
+              const currentParticipant = participants.find(p => p.userId === ws.userId);
+              
+              if (room && currentParticipant) {
+                if (message.action === 'forfeit') {
+                  // End game with forfeit
+                  await storage.updateGameRoom(ws.roomId, { status: "finished" });
+                  
+                  broadcastToRoom(ws.roomId, {
+                    type: 'game_ended',
+                    reason: `Player forfeited the game`,
+                    winner: participants.find(p => p.id !== currentParticipant.id && !p.isSpectator)?.userId
+                  });
+                  
+                } else if (message.action === 'draw_offer') {
+                  // Broadcast draw offer to other players
+                  broadcastToRoom(ws.roomId, {
+                    type: 'draw_offer',
+                    fromPlayer: currentParticipant.userId,
+                    message: `Player offers a draw`
+                  });
+                }
+              }
+            }
+            break;
+
           case 'ready_toggle':
             if (ws.roomId && ws.userId) {
               const participants = await storage.getParticipantsByRoom(ws.roomId);
@@ -236,10 +265,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   const initialGameData = gameEngine.initializeGame(room.gameType as any, participants);
                   console.log(`[WebSocket] Game data initialized:`, JSON.stringify(initialGameData, null, 2));
                   
+                  // Set currentTurn to first non-spectator participant ID
+                  const nonSpectatorParticipants = participants.filter(p => !p.isSpectator);
+                  const currentTurnParticipantId = nonSpectatorParticipants[initialGameData.turn || 0]?.id;
+                  
+                  initialGameData.currentTurn = currentTurnParticipantId;
+                  initialGameData.playerColors = {};
+                  
+                  // Assign player colors based on game type
+                  if (room.gameType === 'chess') {
+                    initialGameData.playerColors[nonSpectatorParticipants[0]?.id] = 'white';
+                    initialGameData.playerColors[nonSpectatorParticipants[1]?.id] = 'black';
+                  } else if (room.gameType === 'checkers') {
+                    initialGameData.playerColors[nonSpectatorParticipants[0]?.id] = 'red';
+                    initialGameData.playerColors[nonSpectatorParticipants[1]?.id] = 'black';
+                  }
+                  
                   await storage.createGameState({
                     roomId: ws.roomId,
                     gameData: initialGameData,
-                    currentTurn: participants.find(p => !p.isSpectator)?.id
+                    currentTurn: currentTurnParticipantId
                   });
 
                   await storage.updateGameRoom(ws.roomId, { status: "playing" });
@@ -282,27 +327,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     room.gameType as any,
                     gameState.gameData as any,
                     message.move,
-                    currentParticipant.id
+                    currentParticipant.id,
+                    participants
                   );
-
-                  const nextTurn = gameEngine.getNextTurn(room.gameType as any, participants, currentParticipant.id);
                   
                   await storage.updateGameState(ws.roomId, {
                     gameData: newGameData,
-                    currentTurn: nextTurn,
+                    currentTurn: newGameData.currentTurn,
                     turnNumber: gameState.turnNumber! + 1
                   });
 
                   broadcastToRoom(ws.roomId, {
                     type: 'game_updated',
                     gameData: newGameData,
-                    currentTurn: nextTurn,
+                    currentTurn: newGameData.currentTurn,
                     move: message.move
                   });
 
                   // Handle bot turns
-                  if (nextTurn) {
-                    const nextParticipant = participants.find(p => p.id === nextTurn);
+                  if (newGameData.currentTurn) {
+                    const nextParticipant = participants.find(p => p.id === newGameData.currentTurn);
                     if (nextParticipant?.playerType === 'bot') {
                       setTimeout(async () => {
                         const botMove = await aiService.getBotMove(room.gameType as any, newGameData, (nextParticipant.botDifficulty as any) || 'medium');
@@ -312,21 +356,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
                             room.gameType as any,
                             newGameData,
                             botMove,
-                            nextParticipant.id
+                            nextParticipant.id,
+                            participants
                           );
 
-                          const nextAfterBot = gameEngine.getNextTurn(room.gameType as any, participants, nextParticipant.id);
-                          
                           await storage.updateGameState(ws.roomId!, {
                             gameData: botGameData,
-                            currentTurn: nextAfterBot,
+                            currentTurn: botGameData.currentTurn,
                             turnNumber: gameState.turnNumber! + 2
                           });
 
                           broadcastToRoom(ws.roomId!, {
                             type: 'game_updated',
                             gameData: botGameData,
-                            currentTurn: nextAfterBot,
+                            currentTurn: botGameData.currentTurn,
                             move: botMove
                           });
                         }

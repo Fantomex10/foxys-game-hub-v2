@@ -217,3 +217,28 @@
 .game-piece.dragging {
   @apply opacity-50 scale-110 z-50;
 }
+
+/* Chess board styling */
+.chess-light-square {
+  background-color: #f0d9b5;
+}
+
+.chess-dark-square {
+  background-color: #b58863;
+}
+
+/* Chess piece contrast improvements */
+.chess-piece {
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+  font-weight: bold;
+}
+
+.chess-piece.white-piece {
+  color: #ffffff;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.9), 0 0 3px rgba(0,0,0,0.5);
+}
+
+.chess-piece.black-piece {
+  color: #2c2c2c;
+  text-shadow: 1px 1px 2px rgba(255,255,255,0.3);
+}
