@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-// TODO: Import WebSocket and game state hooks
+import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Settings } from "lucide-react";
 import type { User } from "@shared/schema";
 
@@ -13,14 +13,16 @@ export default function GameRoom() {
   const [, setLocation] = useLocation();
   const [user, setUser] = useState<User | null>(null);
 
-  const { data: roomData, isLoading } = useQuery({
+  const { data: roomData, isLoading } = useQuery<{room: any, participants: any[], gameState?: any}>({
     queryKey: ['/api/rooms', roomId],
     enabled: !!roomId,
   });
 
-  const [isConnected] = useState(false); // TODO: Implement WebSocket
-  const [gameState] = useState(null); // TODO: Implement game state
-  const makeMove = (move: any) => console.log('Move:', move);
+  const [isConnected, setIsConnected] = useState(false);
+  const [gameState, setGameState] = useState<any>(null);
+  const [selectedSquare, setSelectedSquare] = useState<{row: number, col: number} | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const userId = localStorage.getItem("userId");
@@ -31,6 +33,88 @@ export default function GameRoom() {
     }
     setUser({ id: userId, username, isGuest: true, createdAt: new Date() });
   }, [setLocation]);
+
+  // WebSocket connection for game state
+  useEffect(() => {
+    if (!user || !roomId) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      setIsConnected(true);
+      // Join the room
+      ws.send(JSON.stringify({
+        type: 'join_room',
+        userId: user.id,
+        roomId: roomId
+      }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        
+        switch (message.type) {
+          case 'game_started':
+          case 'game_updated':
+            setGameState(message.gameData);
+            if (message.type === 'game_started') {
+              toast({
+                title: 'Game Started!',
+                description: 'The game has begun. Make your move!'
+              });
+            }
+            break;
+            
+          case 'error':
+            toast({
+              title: 'Game Error',
+              description: message.message || 'An error occurred in the game',
+              variant: 'destructive'
+            });
+            break;
+        }
+      } catch (error) {
+        console.error('Failed to parse WebSocket message:', error);
+      }
+    };
+
+    ws.onclose = () => {
+      setIsConnected(false);
+    };
+
+    ws.onerror = () => {
+      setIsConnected(false);
+      toast({
+        title: 'Connection Error',
+        description: 'Lost connection to the game server. Please refresh the page.',
+        variant: 'destructive'
+      });
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [user, roomId, toast]);
+
+  const makeMove = (move: any) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'game_move',
+        move: move
+      }));
+    } else {
+      toast({
+        title: 'Connection Error',
+        description: 'Cannot make move - not connected to game server',
+        variant: 'destructive'
+      });
+    }
+  };
 
   if (!user || isLoading) {
     return (
@@ -95,6 +179,8 @@ export default function GameRoom() {
                     key={`${rowIndex}-${colIndex}`}
                     className={`aspect-square flex items-center justify-center text-2xl cursor-pointer hover:bg-game-blue/20 transition-colors ${
                       (rowIndex + colIndex) % 2 === 0 ? 'bg-amber-100' : 'bg-amber-800'
+                    } ${
+                      selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex ? 'ring-4 ring-blue-500' : ''
                     }`}
                     onClick={() => handleChessSquareClick(rowIndex, colIndex)}
                     data-testid={`chess-square-${rowIndex}-${colIndex}`}
@@ -172,6 +258,8 @@ export default function GameRoom() {
                     key={`${rowIndex}-${colIndex}`}
                     className={`aspect-square flex items-center justify-center cursor-pointer hover:bg-game-blue/20 transition-colors ${
                       (rowIndex + colIndex) % 2 === 0 ? 'bg-amber-100' : 'bg-amber-800'
+                    } ${
+                      selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex ? 'ring-4 ring-blue-500' : ''
                     }`}
                     onClick={() => handleCheckersSquareClick(rowIndex, colIndex)}
                     data-testid={`checkers-square-${rowIndex}-${colIndex}`}
@@ -216,8 +304,47 @@ export default function GameRoom() {
   };
 
   const handleChessSquareClick = (row: number, col: number) => {
-    // TODO: Implement chess move logic
-    console.log(`Chess square clicked: ${row}, ${col}`);
+    if (!gameState || !isCurrentPlayerTurn()) return;
+
+    const piece = gameState.board[row][col];
+    
+    if (!selectedSquare) {
+      // Select a piece if it belongs to current player
+      if (piece && isPlayerPiece(piece)) {
+        setSelectedSquare({ row, col });
+      }
+    } else {
+      // Try to move the selected piece
+      if (selectedSquare.row === row && selectedSquare.col === col) {
+        // Deselect if clicking same square
+        setSelectedSquare(null);
+      } else {
+        // Attempt move
+        makeMove({
+          type: 'chess_move',
+          from: { row: selectedSquare.row, col: selectedSquare.col },
+          to: { row, col }
+        });
+        setSelectedSquare(null);
+      }
+    }
+  };
+
+  const isPlayerPiece = (piece: string) => {
+    if (!gameState || !roomData) return false;
+    const currentParticipant = roomData.participants.find((p: any) => p.userId === user?.id);
+    if (!currentParticipant) return false;
+    
+    const playerIndex = roomData.participants.filter((p: any) => !p.isSpectator).findIndex((p: any) => p.id === currentParticipant.id);
+    const isWhitePlayer = playerIndex === 0;
+    
+    return isWhitePlayer ? piece === piece.toUpperCase() : piece === piece.toLowerCase();
+  };
+
+  const isCurrentPlayerTurn = () => {
+    if (!gameState || !roomData) return false;
+    const currentParticipant = roomData.participants.find((p: any) => p.userId === user?.id);
+    return currentParticipant && gameState.currentTurn === currentParticipant.id;
   };
 
   const handleCardPlay = (card: string) => {
@@ -228,8 +355,41 @@ export default function GameRoom() {
   };
 
   const handleCheckersSquareClick = (row: number, col: number) => {
-    // TODO: Implement checkers move logic
-    console.log(`Checkers square clicked: ${row}, ${col}`);
+    if (!gameState || !isCurrentPlayerTurn()) return;
+
+    const piece = gameState.board[row][col];
+    
+    if (!selectedSquare) {
+      // Select a piece if it belongs to current player
+      if (piece && isCheckersPlayerPiece(piece)) {
+        setSelectedSquare({ row, col });
+      }
+    } else {
+      // Try to move the selected piece
+      if (selectedSquare.row === row && selectedSquare.col === col) {
+        // Deselect if clicking same square
+        setSelectedSquare(null);
+      } else {
+        // Attempt move
+        makeMove({
+          type: 'checkers_move',
+          from: { row: selectedSquare.row, col: selectedSquare.col },
+          to: { row, col }
+        });
+        setSelectedSquare(null);
+      }
+    }
+  };
+
+  const isCheckersPlayerPiece = (piece: string) => {
+    if (!gameState || !roomData) return false;
+    const currentParticipant = roomData.participants.find((p: any) => p.userId === user?.id);
+    if (!currentParticipant) return false;
+    
+    const playerIndex = roomData.participants.filter((p: any) => !p.isSpectator).findIndex((p: any) => p.id === currentParticipant.id);
+    const isRedPlayer = playerIndex === 0;
+    
+    return isRedPlayer ? piece.toLowerCase() === 'r' : piece.toLowerCase() === 'b';
   };
 
   const getChessPieceSymbol = (piece: string) => {
@@ -262,9 +422,9 @@ export default function GameRoom() {
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className={`connection-indicator ${isConnected ? 'online' : 'offline'}`} data-testid="game-connection-status">
-                <div className="dot"></div>
-                <span className="text-sm text-green-400">
+              <div className={`flex items-center space-x-2`} data-testid="game-connection-status">
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span className={`text-sm ${isConnected ? 'text-green-400' : 'text-red-400'}`}>
                   {isConnected ? 'Connected' : 'Disconnected'}
                 </span>
               </div>
@@ -293,7 +453,7 @@ export default function GameRoom() {
                   <div className="flex justify-between">
                     <span className="text-gray-300 text-sm">Turn:</span>
                     <span className="text-white text-sm" data-testid="text-current-turn">
-                      {gameState?.turn !== undefined ? `Player ${gameState.turn + 1}` : 'Loading...'}
+                      {gameState ? (isCurrentPlayerTurn() ? 'Your Turn' : 'Opponent\'s Turn') : 'Loading...'}
                     </span>
                   </div>
                   <div className="flex justify-between">
