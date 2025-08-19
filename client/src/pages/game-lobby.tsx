@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRoute } from "wouter";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlayerCard } from "@/components/player-card";
 import { Chat } from "@/components/chat";
+import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Settings, Crown, UserPlus, Play, Check, X } from "lucide-react";
 import type { User, GameRoom, GameParticipant } from "@shared/schema";
 
@@ -15,33 +16,53 @@ export default function GameLobby() {
   const [, setLocation] = useLocation();
   const [user, setUser] = useState<User | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const wsRef = useRef<WebSocket | null>(null);
 
-  const { data: roomData, isLoading } = useQuery({
+  const { data: roomData, isLoading } = useQuery<{room: GameRoom, participants: GameParticipant[], gameState?: any}>({
     queryKey: ['/api/rooms', roomId],
     enabled: !!roomId,
   });
 
-  const [isConnected] = useState(false); // TODO: Implement WebSocket connection
 
   const toggleReadyMutation = useMutation({
     mutationFn: async () => {
-      // TODO: WebSocket ready toggle
-      return true;
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'ready_toggle'
+        }));
+        return true;
+      }
+      throw new Error('WebSocket not connected');
     },
-    onSuccess: () => {
-      setIsReady(!isReady);
-    },
+    onError: () => {
+      toast({
+        title: 'Connection Error',
+        description: 'Unable to toggle ready status. Please check your connection.',
+        variant: 'destructive'
+      });
+    }
   });
 
   const startGameMutation = useMutation({
     mutationFn: async () => {
-      // TODO: WebSocket start game
-      return true;
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'start_game'
+        }));
+        return true;
+      }
+      throw new Error('WebSocket not connected');
     },
-    onSuccess: () => {
-      setLocation(`/game/${roomId}`);
-    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to Start Game',
+        description: error.message || 'Unable to start the game. Please try again.',
+        variant: 'destructive'
+      });
+    }
   });
 
   useEffect(() => {
@@ -54,7 +75,96 @@ export default function GameLobby() {
     setUser({ id: userId, username, isGuest: true, createdAt: new Date() });
   }, [setLocation]);
 
-  // TODO: Implement WebSocket message handling
+  // WebSocket connection effect
+  useEffect(() => {
+    if (!user || !roomId) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      setIsConnected(true);
+      // Join the room
+      ws.send(JSON.stringify({
+        type: 'join_room',
+        userId: user.id,
+        roomId: roomId
+      }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        
+        switch (message.type) {
+          case 'user_joined':
+          case 'user_left':
+          case 'participant_updated':
+            // Refresh room data when participants change
+            queryClient.invalidateQueries({ queryKey: ['/api/rooms', roomId] });
+            break;
+            
+          case 'game_started':
+            toast({
+              title: 'Game Started!',
+              description: 'The game has begun. Good luck!'
+            });
+            setLocation(`/game/${roomId}`);
+            break;
+            
+          case 'error':
+            toast({
+              title: 'Error',
+              description: message.message || 'An error occurred',
+              variant: 'destructive'
+            });
+            break;
+        }
+      } catch (error) {
+        console.error('Failed to parse WebSocket message:', error);
+      }
+    };
+
+    ws.onclose = () => {
+      setIsConnected(false);
+    };
+
+    ws.onerror = () => {
+      setIsConnected(false);
+      toast({
+        title: 'Connection Error',
+        description: 'Lost connection to the game server. Please refresh the page.',
+        variant: 'destructive'
+      });
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [user, roomId, setLocation, queryClient, toast]);
+
+  // Handle chat messages
+  const handleSendMessage = (message: string) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'chat_message',
+        message: message
+      }));
+    }
+  };
+
+  // Update ready state based on current user participant
+  useEffect(() => {
+    if (roomData && user) {
+      const currentParticipant = roomData.participants.find(p => p.userId === user.id);
+      if (currentParticipant) {
+        setIsReady(currentParticipant.isReady || false);
+      }
+    }
+  }, [roomData, user]);
 
   if (!user || isLoading) {
     return (
@@ -117,9 +227,9 @@ export default function GameLobby() {
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className={`connection-indicator ${isConnected ? 'online' : 'offline'}`} data-testid="connection-indicator">
-                <div className="dot"></div>
-                <span className="text-sm text-green-400">
+              <div className={`flex items-center space-x-2`} data-testid="connection-indicator">
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span className={`text-sm ${isConnected ? 'text-green-400' : 'text-red-400'}`}>
                   {isConnected ? 'Connected' : 'Disconnected'}
                 </span>
               </div>
@@ -174,7 +284,12 @@ export default function GameLobby() {
               {players.map((participant: GameParticipant) => (
                 <PlayerCard
                   key={participant.id}
-                  participant={participant}
+                  participant={{
+                    id: participant.id,
+                    userId: participant.userId || '',
+                    isReady: participant.isReady || false,
+                    isSpectator: participant.isSpectator || false
+                  }}
                   isHost={participant.userId === room.hostId}
                   isCurrentUser={participant.userId === user.id}
                 />
@@ -214,7 +329,7 @@ export default function GameLobby() {
               {isHost && (
                 <Button
                   onClick={() => startGameMutation.mutate()}
-                  disabled={!allPlayersReady || startGameMutation.isPending}
+                  disabled={!allPlayersReady || startGameMutation.isPending || !isConnected}
                   className="w-full game-button disabled:opacity-50 disabled:cursor-not-allowed"
                   data-testid="button-start-game"
                 >
@@ -228,7 +343,7 @@ export default function GameLobby() {
           {/* Chat & Settings */}
           <div className="space-y-6">
             {room.enableChat && (
-              <Chat roomId={room.id} onSendMessage={(message) => console.log('Send message:', message)} />
+              <Chat roomId={room.id} onSendMessage={handleSendMessage} />
             )}
 
             {/* Game Settings */}

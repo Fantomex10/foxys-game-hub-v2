@@ -78,8 +78,7 @@ export default function MainHub() {
   };
 
   const handleJoinRoom = () => {
-    // TODO: Show join room modal/page
-    setLocation("/lobby/join");
+    setLocation("/join");
   };
 
   const handleLocalGames = () => {

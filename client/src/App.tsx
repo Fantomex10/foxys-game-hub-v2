@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEffect, useState } from "react";
 import Login from "@/pages/login";
 import MainHub from "@/pages/main-hub";
+import JoinRooms from "@/pages/join-rooms";
 import GameLobby from "@/pages/game-lobby";
 import GameRoom from "@/pages/game-room";
 
@@ -14,6 +15,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Login} />
       <Route path="/hub" component={MainHub} />
+      <Route path="/join" component={JoinRooms} />
       <Route path="/lobby/:roomId" component={GameLobby} />
       <Route path="/game/:roomId" component={GameRoom} />
       <Route>

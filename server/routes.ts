@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { insertUserSchema, insertGameRoomSchema, insertGameParticipantSchema, insertChatMessageSchema } from "@shared/schema";
 import { gameEngine } from "./services/game-engine";
-// import { aiService } from "./services/ai-service"; // TODO: Implement AI service
+import { aiService } from "./services/ai-service";
 
 interface WebSocketWithUser extends WebSocket {
   userId?: string;
@@ -268,8 +268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     const nextParticipant = participants.find(p => p.id === nextTurn);
                     if (nextParticipant?.playerType === 'bot') {
                       setTimeout(async () => {
-                        // TODO: Implement AI service
-                        const botMove = null; // await aiService.getBotMove(room.gameType, newGameData, nextParticipant.botDifficulty || 'medium');
+                        const botMove = await aiService.getBotMove(room.gameType as any, newGameData, (nextParticipant.botDifficulty as any) || 'medium');
 
                         if (botMove) {
                           const botGameData = gameEngine.processMove(
