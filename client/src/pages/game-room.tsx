@@ -548,8 +548,10 @@ export default function GameRoom() {
         // Attempt move
         makeMove({
           type: 'chess_move',
-          from: { row: selectedSquare.row, col: selectedSquare.col },
-          to: { row, col }
+          data: {
+            from: { row: selectedSquare.row, col: selectedSquare.col },
+            to: { row, col }
+          }
         });
         setSelectedSquare(null);
       }
@@ -607,8 +609,10 @@ export default function GameRoom() {
         // Attempt move
         makeMove({
           type: 'checkers_move',
-          from: { row: selectedSquare.row, col: selectedSquare.col },
-          to: { row, col }
+          data: {
+            from: { row: selectedSquare.row, col: selectedSquare.col },
+            to: { row, col }
+          }
         });
         setSelectedSquare(null);
       }
@@ -698,8 +702,10 @@ export default function GameRoom() {
     
     makeMove({
       type: moveType,
-      from: { row: fromRow, col: fromCol },
-      to: { row, col }
+      data: {
+        from: { row: fromRow, col: fromCol },
+        to: { row, col }
+      }
     });
     
     setDraggedPiece(null);
@@ -774,8 +780,10 @@ export default function GameRoom() {
           
           makeMove({
             type: moveType,
-            from: { row: fromRow, col: fromCol },
-            to: { row, col }
+            data: {
+              from: { row: fromRow, col: fromCol },
+              to: { row, col }
+            }
           });
         }
       }
@@ -786,6 +794,37 @@ export default function GameRoom() {
     touchDraggedPiece.current = null;
     setDraggedPiece(null);
     setDragOverSquare(null);
+  };
+
+  // Helper functions for board orientation
+  const shouldFlipBoard = () => {
+    // Flip board if player is playing as black/red (bottom player)
+    const playerColor = getPlayerColor();
+    return playerColor === 'black' || playerColor === 'red';
+  };
+
+  const getDisplayRow = (row: number) => {
+    return shouldFlipBoard() ? 7 - row : row;
+  };
+
+  const getDisplayCol = (col: number) => {
+    return shouldFlipBoard() ? 7 - col : col;
+  };
+
+  const getActualRow = (displayRow: number) => {
+    return shouldFlipBoard() ? 7 - displayRow : displayRow;
+  };
+
+  const getActualCol = (displayCol: number) => {
+    return shouldFlipBoard() ? 7 - displayCol : displayCol;
+  };
+
+  const getPieceSymbol = (piece: string): string => {
+    if (piece && piece.length > 0) {
+      const pieceChar = piece[1]; // Skip color prefix
+      return getChessPieceSymbol(pieceChar);
+    }
+    return '';
   };
 
   const getChessPieceSymbol = (piece: string) => {
