@@ -133,7 +133,8 @@ class GameEngine {
       board: initialBoard,
       turn: 0,
       phase: 'playing',
-      capturedPieces: { red: 0, black: 0 }
+      capturedPieces: { white: [], black: [] },
+      moveHistory: []
     };
   }
 

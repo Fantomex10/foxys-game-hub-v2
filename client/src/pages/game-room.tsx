@@ -134,14 +134,18 @@ export default function GameRoom() {
             
             if (message.type === 'game_started') {
               setIsGameLoading(false);
+              // Only show "game started" message if the game isn't already over
+              if (!message.gameData?.gameOver) {
+                toast({
+                  title: '🎮 Game Started!',
+                  description: 'The game has begun. Make your move!',
+                  className: 'toast-success'
+                });
+              }
+            } else if (!message.gameData?.gameOver) {
+              // Only show "move completed" if game isn't over
               toast({
-                title: '🎮 Game Started!',
-                description: 'The game has begun. Make your move!',
-                className: 'toast-success'
-              });
-            } else {
-              toast({
-                title: '✅ Move Completed',
+                title: '✅ Move Completed', 
                 description: 'Your move has been processed',
                 className: 'toast-success'
               });
@@ -157,6 +161,16 @@ export default function GameRoom() {
             toast({
               title: 'Game Over',
               description: message.reason || 'The game has ended'
+            });
+            break;
+            
+          case 'rematch_started':
+            // Redirect back to lobby for rematch
+            setLocation(`/lobby/${roomId}`);
+            toast({
+              title: '🔄 Rematch Started',
+              description: 'Ready up for the new game!',
+              className: 'toast-success'
             });
             break;
             
@@ -309,6 +323,22 @@ export default function GameRoom() {
     }
   };
 
+  const handleRematch = () => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'rematch_request',
+        userId: user?.id,
+        roomId: roomId
+      }));
+      
+      toast({
+        title: '🔄 Rematch Requested',
+        description: 'Returning to lobby to ready up for a new game',
+        className: 'toast-success'
+      });
+    }
+  };
+
   if (!user || isLoading) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center">
@@ -389,14 +419,23 @@ export default function GameRoom() {
           {gameState && (
             <div className="mb-4 text-center">
               {gameState.gameOver ? (
-                <div className="text-lg font-bold">
-                  {gameState.winner === 'draw' ? (
-                    <span className="text-yellow-400">🤝 Game Drawn - {gameState.endReason}</span>
-                  ) : (
-                    <span className="text-green-400">
-                      🏆 {gameState.winner === 'white' ? 'White' : 'Black'} Wins by {gameState.endReason}!
-                    </span>
-                  )}
+                <div className="space-y-3">
+                  <div className="text-lg font-bold">
+                    {gameState.winner === 'draw' ? (
+                      <span className="text-yellow-400">🤝 Game Drawn - {gameState.endReason}</span>
+                    ) : (
+                      <span className="text-green-400">
+                        🏆 {gameState.winner === 'white' ? 'White' : 'Black'} Wins by {gameState.endReason}!
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    onClick={() => handleRematch()}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+                    data-testid="button-rematch"
+                  >
+                    🔄 Play Again
+                  </Button>
                 </div>
               ) : gameState.inCheck ? (
                 <div className="text-red-400 font-bold animate-pulse">

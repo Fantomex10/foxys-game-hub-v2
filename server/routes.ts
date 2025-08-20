@@ -441,6 +441,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
             break;
+            
+          case 'rematch_request':
+            try {
+              if (ws.roomId && ws.userId) {
+                const room = await storage.getGameRoom(ws.roomId);
+                if (room) {
+                  // Reset room status to waiting
+                  await storage.updateGameRoom(ws.roomId, { status: 'waiting' });
+                  
+                  // Delete existing game state
+                  const existingGameState = await storage.getGameState(ws.roomId);
+                  if (existingGameState) {
+                    await storage.deleteGameState(ws.roomId);
+                  }
+                  
+                  // Reset all participants to not ready
+                  const participants = await storage.getParticipantsByRoom(ws.roomId);
+                  for (const participant of participants) {
+                    await storage.updateParticipant(participant.id, { isReady: false });
+                  }
+                  
+                  // Broadcast rematch started to all room participants
+                  broadcastToRoom(ws.roomId, {
+                    type: 'rematch_started',
+                    roomId: ws.roomId,
+                    timestamp: new Date().toISOString()
+                  });
+                }
+              }
+            } catch (error) {
+              console.error('[WebSocket] Error in rematch_request:', error);
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                  type: 'error',
+                  message: 'Failed to start rematch'
+                }));
+              }
+            }
+            break;
         }
       } catch (error: any) {
         console.error('WebSocket message error:', error);
