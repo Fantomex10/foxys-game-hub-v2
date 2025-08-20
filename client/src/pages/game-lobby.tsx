@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PlayerCard } from "@/components/player-card";
 import { Chat } from "@/components/chat";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Settings, Crown, UserPlus, Play, Check, X } from "lucide-react";
+import { ArrowLeft, Settings, Crown, UserPlus, Play, Check, X, MoveHorizontal, Eye } from "lucide-react";
 import type { User, GameRoom, GameParticipant } from "@shared/schema";
+import { getGameInfo } from "@/lib/game-types";
 
 export default function GameLobby() {
   const [match, params] = useRoute("/lobby/:roomId");
@@ -69,9 +70,11 @@ export default function GameLobby() {
   const changeGameTypeMutation = useMutation({
     mutationFn: async (newGameType: string) => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        const gameInfo = getGameInfo(newGameType);
         wsRef.current.send(JSON.stringify({
           type: 'change_game_type',
-          gameType: newGameType
+          gameType: newGameType,
+          maxPlayers: gameInfo?.maxPlayers || 2
         }));
         return true;
       }
@@ -81,6 +84,27 @@ export default function GameLobby() {
       toast({
         title: 'Failed to Change Game Type',
         description: error.message || 'Unable to change the game type. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  });
+
+  const movePlayerMutation = useMutation({
+    mutationFn: async ({ participantId, toSpectator }: { participantId: string, toSpectator: boolean }) => {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'move_player',
+          participantId,
+          toSpectator
+        }));
+        return true;
+      }
+      throw new Error('WebSocket not connected');
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to Move Player',
+        description: error.message || 'Unable to move the player. Please try again.',
         variant: 'destructive'
       });
     }
@@ -125,6 +149,7 @@ export default function GameLobby() {
           case 'user_left':
           case 'participant_updated':
           case 'game_type_changed':
+          case 'player_moved':
             // Refresh room data when participants change or game type changes
             queryClient.invalidateQueries({ queryKey: ['/api/rooms', roomId] });
             break;
@@ -338,17 +363,30 @@ export default function GameLobby() {
             <h3 className="text-xl font-semibold text-white mb-4" data-testid="text-players-title">Players</h3>
             <div className="space-y-3">
               {players.map((participant: GameParticipant) => (
-                <PlayerCard
-                  key={participant.id}
-                  participant={{
-                    id: participant.id,
-                    userId: participant.userId || '',
-                    isReady: participant.isReady || false,
-                    isSpectator: participant.isSpectator || false
-                  }}
-                  isHost={participant.userId === room.hostId}
-                  isCurrentUser={participant.userId === user.id}
-                />
+                <div key={participant.id} className="relative">
+                  <PlayerCard
+                    participant={{
+                      id: participant.id,
+                      userId: participant.userId || '',
+                      isReady: participant.isReady || false,
+                      isSpectator: participant.isSpectator || false
+                    }}
+                    isHost={participant.userId === room.hostId}
+                    isCurrentUser={participant.userId === user.id}
+                  />
+                  {isHost && participant.userId !== user.id && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="absolute top-2 right-2 p-1 h-6 w-6 text-gray-400 hover:text-white hover:bg-red-500/20"
+                      onClick={() => movePlayerMutation.mutate({ participantId: participant.id, toSpectator: true })}
+                      title="Move to spectators"
+                      data-testid={`button-move-to-spectator-${participant.id}`}
+                    >
+                      <Eye size={12} />
+                    </Button>
+                  )}
+                </div>
               ))}
 
               {/* Empty Slots */}
@@ -396,8 +434,46 @@ export default function GameLobby() {
             </div>
           </div>
 
-          {/* Chat & Settings */}
+          {/* Spectators & Chat & Settings */}
           <div className="space-y-6">
+            {/* Spectators Section */}
+            {spectators.length > 0 && (
+              <Card className="bg-game-navy/50 backdrop-blur-sm border-gray-700/50">
+                <CardContent className="p-4">
+                  <h4 className="text-white font-semibold mb-3" data-testid="text-spectators-title">
+                    Spectators ({spectators.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {spectators.map((participant: GameParticipant) => (
+                      <div key={participant.id} className="flex items-center justify-between bg-game-slate/30 p-2 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-xs text-white">
+                            {participant.userId?.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-white text-sm">
+                            {participant.userId === user.id ? 'You' : participant.userId}
+                          </span>
+                          <Eye size={12} className="text-gray-400" />
+                        </div>
+                        {isHost && players.length < room.maxPlayers && participant.userId !== user.id && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="p-1 h-6 w-6 text-gray-400 hover:text-white hover:bg-green-500/20"
+                            onClick={() => movePlayerMutation.mutate({ participantId: participant.id, toSpectator: false })}
+                            title="Move to players"
+                            data-testid={`button-move-to-player-${participant.id}`}
+                          >
+                            <MoveHorizontal size={12} />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             {room.enableChat && (
               <Chat roomId={room.id} onSendMessage={handleSendMessage} />
             )}

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { getGameInfo } from '@/lib/game-types';
 
 interface CreateRoomModalProps {
   onRoomCreated: (roomId: string) => void;
@@ -17,7 +18,7 @@ interface CreateRoomModalProps {
 export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps) {
   const [roomName, setRoomName] = useState('');
   const [gameType, setGameType] = useState('');
-  const [maxPlayers, setMaxPlayers] = useState('4');
+  const [maxPlayers, setMaxPlayers] = useState('2');
   const [isPrivate, setIsPrivate] = useState(false);
   const [enableChat, setEnableChat] = useState(true);
   const [allowSpectators, setAllowSpectators] = useState(true);
@@ -59,10 +60,13 @@ export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps
       return;
     }
 
+    const gameInfo = getGameInfo(gameType);
+    const finalMaxPlayers = gameInfo ? gameInfo.maxPlayers : parseInt(maxPlayers);
+    
     createRoomMutation.mutate({
       name: roomName.trim(),
       gameType,
-      maxPlayers: parseInt(maxPlayers),
+      maxPlayers: finalMaxPlayers,
       isPrivate,
       enableChat,
       allowSpectators,
@@ -104,7 +108,13 @@ export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps
 
           <div>
             <Label htmlFor="gameType" className="text-foreground">Game Type</Label>
-            <Select value={gameType} onValueChange={setGameType}>
+            <Select value={gameType} onValueChange={(value) => {
+              setGameType(value);
+              const gameInfo = getGameInfo(value);
+              if (gameInfo) {
+                setMaxPlayers(gameInfo.maxPlayers.toString());
+              }
+            }}>
               <SelectTrigger className="bg-input border-border text-foreground" data-testid="select-game-type">
                 <SelectValue placeholder="Select a game" />
               </SelectTrigger>
@@ -120,17 +130,16 @@ export function CreateRoomModal({ onRoomCreated, onClose }: CreateRoomModalProps
 
           <div>
             <Label htmlFor="maxPlayers" className="text-foreground">Max Players</Label>
-            <Select value={maxPlayers} onValueChange={setMaxPlayers}>
-              <SelectTrigger className="bg-input border-border text-foreground" data-testid="select-max-players">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-popover border-border">
-                <SelectItem value="2" className="text-foreground hover:bg-accent hover:text-accent-foreground">2 Players</SelectItem>
-                <SelectItem value="4" className="text-foreground hover:bg-accent hover:text-accent-foreground">4 Players</SelectItem>
-                <SelectItem value="6" className="text-foreground hover:bg-accent hover:text-accent-foreground">6 Players</SelectItem>
-                <SelectItem value="8" className="text-foreground hover:bg-accent hover:text-accent-foreground">8 Players</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="bg-input border border-border rounded-md px-3 py-2 text-foreground">
+              {gameType ? (
+                <span>{getGameInfo(gameType)?.maxPlayers || maxPlayers} Players (auto-set by game type)</span>
+              ) : (
+                <span className="text-muted-foreground">Select a game type first</span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Player count is automatically set based on the selected game type
+            </p>
           </div>
 
           <div className="space-y-4">

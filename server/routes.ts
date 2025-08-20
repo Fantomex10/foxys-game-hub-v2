@@ -487,16 +487,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const room = await storage.getGameRoom(ws.roomId);
                 if (room && room.hostId === ws.userId) {
                   // Only host can change game type
-                  await storage.updateGameRoom(ws.roomId, { gameType: message.gameType });
+                  const updateData: any = { gameType: message.gameType };
+                  if (message.maxPlayers) {
+                    updateData.maxPlayers = message.maxPlayers;
+                  }
+                  
+                  await storage.updateGameRoom(ws.roomId, updateData);
                   
                   // Broadcast game type change to all room participants
                   broadcastToRoom(ws.roomId, {
                     type: 'game_type_changed',
                     gameType: message.gameType,
+                    maxPlayers: message.maxPlayers,
                     timestamp: new Date().toISOString()
                   });
                   
-                  console.log(`[WebSocket] Game type changed to ${message.gameType} by host ${ws.userId}`);
+                  console.log(`[WebSocket] Game type changed to ${message.gameType} with maxPlayers ${message.maxPlayers} by host ${ws.userId}`);
                 } else {
                   // Send error if not host
                   if (ws.readyState === WebSocket.OPEN) {
@@ -513,6 +519,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 ws.send(JSON.stringify({
                   type: 'error',
                   message: 'Failed to change game type'
+                }));
+              }
+            }
+            break;
+
+          case 'move_player':
+            try {
+              if (ws.roomId && ws.userId) {
+                const room = await storage.getGameRoom(ws.roomId);
+                if (room && room.hostId === ws.userId) {
+                  // Only host can move players
+                  const participantId = message.participantId;
+                  const toSpectator = message.toSpectator;
+                  
+                  await storage.updateParticipant(participantId, {
+                    isSpectator: toSpectator
+                  });
+                  
+                  // Broadcast player move to all room participants
+                  broadcastToRoom(ws.roomId, {
+                    type: 'player_moved',
+                    participantId: participantId,
+                    toSpectator: toSpectator,
+                    timestamp: new Date().toISOString()
+                  });
+                  
+                  console.log(`[WebSocket] Player ${participantId} moved to ${toSpectator ? 'spectator' : 'player'} by host ${ws.userId}`);
+                } else {
+                  // Send error if not host
+                  if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                      type: 'error',
+                      message: 'Only the host can move players'
+                    }));
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('[WebSocket] Error in move_player:', error);
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                  type: 'error',
+                  message: 'Failed to move player'
                 }));
               }
             }
