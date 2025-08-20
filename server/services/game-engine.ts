@@ -110,11 +110,11 @@ class GameEngine {
   private initializeCheckers(players: string[]): GameData {
     const initialBoard = Array(8).fill(null).map(() => Array(8).fill(null));
     
-    // Place pieces
+    // Place pieces - using 'red' and 'black' to avoid confusion with chess pieces
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 8; col++) {
         if ((row + col) % 2 === 1) {
-          initialBoard[row][col] = 'b'; // black pieces
+          initialBoard[row][col] = 'black'; // black pieces at top
         }
       }
     }
@@ -122,7 +122,7 @@ class GameEngine {
     for (let row = 5; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         if ((row + col) % 2 === 1) {
-          initialBoard[row][col] = 'r'; // red pieces
+          initialBoard[row][col] = 'red'; // red pieces at bottom
         }
       }
     }
@@ -131,7 +131,7 @@ class GameEngine {
       gameType: 'checkers',
       players,
       board: initialBoard,
-      turn: 0,
+      turn: 0, // 0 for red (bottom), 1 for black (top)
       phase: 'playing',
       capturedPieces: { white: [], black: [] },
       moveHistory: []
@@ -463,11 +463,33 @@ class GameEngine {
   }
 
   private processCheckersMove(gameData: GameData, move: GameMove, playerId: string): GameData {
-    // Basic checkers move processing
-    const newBoard = JSON.parse(JSON.stringify(gameData.board));
-    const { from, to, captures } = move.data;
+    const { from, to } = move.data;
+    let { captures } = move.data;
     
-    newBoard[to.row][to.col] = newBoard[from.row][from.col];
+    // Auto-detect captures if not provided by frontend
+    if (!captures) {
+      const dr = to.row - from.row;
+      const dc = to.col - from.col;
+      if (Math.abs(dr) === 2 && Math.abs(dc) === 2) {
+        // This is a capture move
+        const middleRow = from.row + dr / 2;
+        const middleCol = from.col + dc / 2;
+        captures = [{ row: middleRow, col: middleCol }];
+      } else {
+        captures = [];
+      }
+    }
+    
+    // Validate the move
+    if (!this.isValidCheckersMove(gameData, from, to, captures)) {
+      throw new Error('Invalid checkers move');
+    }
+    
+    const newBoard = JSON.parse(JSON.stringify(gameData.board));
+    const piece = newBoard[from.row][from.col];
+    
+    // Move the piece
+    newBoard[to.row][to.col] = piece;
     newBoard[from.row][from.col] = null;
     
     // Handle captures
@@ -477,11 +499,148 @@ class GameEngine {
       });
     }
     
-    return {
+    // Check for king promotion (reaching opposite end)
+    const isRedPiece = piece === 'red';
+    const promotionRow = isRedPiece ? 0 : 7;
+    if (to.row === promotionRow && piece && !piece.includes('K')) {
+      newBoard[to.row][to.col] = piece + 'K'; // Make it a king
+    }
+    
+    const newGameData = {
       ...gameData,
       board: newBoard,
-      turn: 1 - gameData.turn!
+      turn: 1 - gameData.turn!,
+      moveHistory: [...(gameData.moveHistory || []), { ...move, data: { ...move.data, captures } }]
     };
+    
+    // Check for win condition
+    const opponentColor = gameData.turn === 0 ? 'black' : 'red';
+    if (this.hasNoCheckersMovesLeft(newGameData, opponentColor)) {
+      newGameData.gameOver = true;
+      newGameData.winner = gameData.turn === 0 ? 'red' : 'black';
+      newGameData.endReason = 'no moves left';
+    }
+    
+    return newGameData;
+  }
+  
+  private isValidCheckersMove(gameData: GameData, from: {row: number, col: number}, to: {row: number, col: number}, captures?: {row: number, col: number}[]): boolean {
+    const board = gameData.board;
+    const piece = board[from.row][from.col];
+    
+    if (!piece) return false;
+    
+    // Check if it's the right player's turn
+    const isRedPiece = piece === 'red' || piece === 'redK';
+    const isRedTurn = gameData.turn === 0;
+    if (isRedPiece !== isRedTurn) return false;
+    
+    // Check if destination is empty
+    if (board[to.row][to.col] !== null) return false;
+    
+    const dr = to.row - from.row;
+    const dc = to.col - from.col;
+    const absDr = Math.abs(dr);
+    const absDc = Math.abs(dc);
+    
+    // Must move diagonally
+    if (absDr !== absDc) return false;
+    
+    const isKing = piece.includes('K');
+    
+    // Regular pieces can only move forward, kings can move any direction
+    if (!isKing) {
+      const correctDirection = isRedPiece ? dr < 0 : dr > 0;
+      if (!correctDirection) return false;
+    }
+    
+    // Check if this is a capture move
+    if (absDr === 2) {
+      // This is a jump/capture move
+      const middleRow = from.row + dr / 2;
+      const middleCol = from.col + dc / 2;
+      const middlePiece = board[middleRow][middleCol];
+      
+      // Must have an opponent piece to jump over
+      if (!middlePiece) return false;
+      
+      const isMiddlePieceRed = middlePiece === 'red' || middlePiece === 'redK';
+      if (isMiddlePieceRed === isRedPiece) return false; // Can't jump own pieces
+      
+      return true;
+    } else if (absDr === 1) {
+      // Regular move - only allowed if no captures are available
+      return !this.hasAvailableCaptures(board, isRedPiece);
+    }
+    
+    return false;
+  }
+  
+  private hasAvailableCaptures(board: any[][], isRedPlayer: boolean): boolean {
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = board[row][col];
+        if (!piece) continue;
+        
+        const isRedPiece = piece === 'red' || piece === 'redK';
+        if (isRedPiece !== isRedPlayer) continue;
+        
+        // Check for possible captures from this piece
+        const directions = piece.includes('K') ? [[-2, -2], [-2, 2], [2, -2], [2, 2]] : 
+                          isRedPiece ? [[-2, -2], [-2, 2]] : [[2, -2], [2, 2]];
+        
+        for (const [dr, dc] of directions) {
+          const newRow = row + dr;
+          const newCol = col + dc;
+          const middleRow = row + dr / 2;
+          const middleCol = col + dc / 2;
+          
+          if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 &&
+              board[newRow][newCol] === null && board[middleRow][middleCol]) {
+            const middlePiece = board[middleRow][middleCol];
+            const isMiddleRed = middlePiece === 'red' || middlePiece === 'redK';
+            if (isMiddleRed !== isRedPiece) {
+              return true; // Found a capture
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+  
+  private hasNoCheckersMovesLeft(gameData: GameData, playerColor: string): boolean {
+    const board = gameData.board;
+    const isRedPlayer = playerColor === 'red';
+    
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = board[row][col];
+        if (!piece) continue;
+        
+        const isRedPiece = piece === 'red' || piece === 'redK';
+        if (isRedPiece !== isRedPlayer) continue;
+        
+        // Check if this piece has any valid moves
+        const isKing = piece.includes('K');
+        const directions = isKing ? [[-1, -1], [-1, 1], [1, -1], [1, 1], [-2, -2], [-2, 2], [2, -2], [2, 2]] :
+                          isRedPiece ? [[-1, -1], [-1, 1], [-2, -2], [-2, 2]] : [[1, -1], [1, 1], [2, -2], [2, 2]];
+        
+        for (const [dr, dc] of directions) {
+          const newRow = row + dr;
+          const newCol = col + dc;
+          
+          if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+            const captures = Math.abs(dr) === 2 ? [{row: row + dr/2, col: col + dc/2}] : [];
+            if (this.isValidCheckersMove(gameData, {row, col}, {row: newRow, col: newCol}, captures)) {
+              return false; // Found a valid move
+            }
+          }
+        }
+      }
+    }
+    
+    return true; // No valid moves found
   }
 
   private processHeartsMove(gameData: GameData, move: GameMove, playerId: string): GameData {

@@ -573,12 +573,12 @@ export default function GameRoom() {
                     {piece && (
                       <div
                         className={`w-8 h-8 rounded-full border-2 select-none ${
-                          piece.toLowerCase() === 'r'
+                          piece === 'red' || piece === 'redK'
                             ? 'bg-red-600 border-red-800'
                             : 'bg-black border-gray-800'
                         } ${
                           draggedPiece?.row === rowIndex && draggedPiece?.col === colIndex ? 'opacity-50' : ''
-                        }`}
+                        } ${piece.includes && piece.includes('K') ? 'border-yellow-400 border-4' : ''}`}
                         draggable={piece && isCheckersPlayerPiece(piece) && isCurrentPlayerTurn()}
                         onDragStart={(e) => handleDragStart(e, rowIndex, colIndex, piece)}
                         onDragEnd={() => handleDragEnd()}
@@ -661,7 +661,9 @@ export default function GameRoom() {
     if (room.gameType === 'chess') {
       return playerColor === 'white' ? piece === piece.toUpperCase() : piece === piece.toLowerCase();
     } else if (room.gameType === 'checkers') {
-      return playerColor === 'red' ? piece === 'r' || piece === 'R' : piece === 'b' || piece === 'B';
+      return playerColor === 'red' ? 
+        (piece === 'red' || piece === 'redK') : 
+        (piece === 'black' || piece === 'blackK');
     }
     return false;
   };

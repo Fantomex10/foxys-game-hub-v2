@@ -301,17 +301,39 @@ class AIService {
     const board = gameData.board;
     const isRedTurn = gameData.turn === 0;
     
+    // First check for any available captures (captures are mandatory)
+    const captureMoves: GameMove[] = [];
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         const piece = board[row][col];
         if (!piece) continue;
         
-        const isRedPiece = piece.toLowerCase() === 'r';
+        const isRedPiece = piece === 'red' || piece === 'redK';
         if (isRedPiece !== isRedTurn) continue;
         
-        // Generate checker moves
         const pieceMoves = this.generateCheckerMoves(board, row, col, piece);
-        moves.push(...pieceMoves);
+        const pieceCaptures = pieceMoves.filter(move => move.data.captures && move.data.captures.length > 0);
+        captureMoves.push(...pieceCaptures);
+      }
+    }
+    
+    // If there are captures available, only return captures
+    if (captureMoves.length > 0) {
+      return captureMoves;
+    }
+    
+    // Otherwise, return all regular moves
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = board[row][col];
+        if (!piece) continue;
+        
+        const isRedPiece = piece === 'red' || piece === 'redK';
+        if (isRedPiece !== isRedTurn) continue;
+        
+        const pieceMoves = this.generateCheckerMoves(board, row, col, piece);
+        const regularMoves = pieceMoves.filter(move => !move.data.captures || move.data.captures.length === 0);
+        moves.push(...regularMoves);
       }
     }
     
@@ -320,12 +342,44 @@ class AIService {
 
   private generateCheckerMoves(board: any[][], row: number, col: number, piece: string): GameMove[] {
     const moves: GameMove[] = [];
-    const isRed = piece.toLowerCase() === 'r';
-    const direction = isRed ? -1 : 1;
+    const isRed = piece === 'red' || piece === 'redK';
+    const isKing = piece.includes('K');
     
-    // Normal moves
-    for (const dc of [-1, 1]) {
-      const newRow = row + direction;
+    // Determine movement directions
+    const directions = isKing ? 
+      [[-1, -1], [-1, 1], [1, -1], [1, 1]] : // Kings can move in all diagonal directions
+      isRed ? [[-1, -1], [-1, 1]] : [[1, -1], [1, 1]]; // Regular pieces move forward only
+    
+    // Check for capture moves first (captures are mandatory)
+    const captureMoves: GameMove[] = [];
+    for (const [dr, dc] of directions) {
+      const jumpRow = row + dr * 2;
+      const jumpCol = col + dc * 2;
+      const middleRow = row + dr;
+      const middleCol = col + dc;
+      
+      if (jumpRow >= 0 && jumpRow < 8 && jumpCol >= 0 && jumpCol < 8 && 
+          !board[jumpRow][jumpCol] && board[middleRow] && board[middleRow][middleCol] &&
+          this.isOpponentCheckersPiece(piece, board[middleRow][middleCol])) {
+        captureMoves.push({
+          type: 'move',
+          data: {
+            from: { row, col },
+            to: { row: jumpRow, col: jumpCol },
+            captures: [{ row: middleRow, col: middleCol }]
+          }
+        });
+      }
+    }
+    
+    // If captures are available, only return captures (mandatory)
+    if (captureMoves.length > 0) {
+      return captureMoves;
+    }
+    
+    // Otherwise, generate normal moves
+    for (const [dr, dc] of directions) {
+      const newRow = row + dr;
       const newCol = col + dc;
       
       if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 && !board[newRow][newCol]) {
@@ -340,28 +394,13 @@ class AIService {
       }
     }
     
-    // Capture moves (simplified)
-    for (const dc of [-1, 1]) {
-      const jumpRow = row + direction * 2;
-      const jumpCol = col + dc * 2;
-      const middleRow = row + direction;
-      const middleCol = col + dc;
-      
-      if (jumpRow >= 0 && jumpRow < 8 && jumpCol >= 0 && jumpCol < 8 && 
-          !board[jumpRow][jumpCol] && board[middleRow] && board[middleRow][middleCol] &&
-          this.isOpponentPiece(piece, board[middleRow][middleCol])) {
-        moves.push({
-          type: 'move',
-          data: {
-            from: { row, col },
-            to: { row: jumpRow, col: jumpCol },
-            captures: [{ row: middleRow, col: middleCol }]
-          }
-        });
-      }
-    }
-    
     return moves;
+  }
+  
+  private isOpponentCheckersPiece(piece1: string, piece2: string): boolean {
+    const isRed1 = piece1 === 'red' || piece1 === 'redK';
+    const isRed2 = piece2 === 'red' || piece2 === 'redK';
+    return isRed1 !== isRed2;
   }
 
   private isCapture(gameData: GameData, move: GameMove): boolean {
