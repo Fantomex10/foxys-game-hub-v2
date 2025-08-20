@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameHub - Multiplayer Board & Card Games</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#10b981', 
+                        accent: '#f59e0b',
+                        dark: '#111827',
+                        surface: '#1f2937',
+                        'surface-light': '#374151'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'ui-sans-serif', 'system-ui'],
+                        'body': ['Source Sans Pro', 'ui-sans-serif', 'system-ui']
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Sans+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-dark text-white font-body min-h-screen">
+    
+    <!-- @COMPONENT: NavigationHeader -->
+    <header class="bg-surface border-b border-surface-light">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-gamepad text-primary text-2xl"></i>
+                        <h1 class="text-xl font-sans font-bold text-white">GameHub</h1>
+                    </div>
+                </div>
+                
+                <nav class="hidden md:flex items-center space-x-6">
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">Games</a>
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">Rooms</a>
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">Friends</a>
+                    <a href="#" class="text-gray-300 hover:text-white transition-colors">Profile</a>
+                </nav>
+                
+                <div class="flex items-center space-x-4">
+                    <!-- @STATE: user:object -->
+                    <div class="flex items-center space-x-3" data-bind="user">
+                        <!-- Profile picture placeholder for dynamic user avatar -->
+                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" alt="User Avatar" class="w-8 h-8 rounded-full border-2 border-primary" data-mock="true">
+                        <span class="text-sm font-medium" data-bind="user.username">Player123</span>
+                        <div class="flex items-center space-x-1">
+                            <div class="w-2 h-2 bg-secondary rounded-full"></div>
+                            <span class="text-xs text-green-400">Online</span>
+                        </div>
+                    </div>
+                    <button class="text-gray-400 hover:text-white">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: NavigationHeader -->
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- @COMPONENT: QuickPlaySection -->
+        <section class="mb-12">
+            <div class="bg-gradient-to-r from-primary to-purple-600 rounded-2xl p-8 text-center">
+                <h2 class="text-3xl font-sans font-bold mb-4">Ready to Play?</h2>
+                <p class="text-lg mb-6 opacity-90">Jump into a quick match or create your own room</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button class="bg-white text-primary px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-colors" data-event="click:handleQuickPlay">
+                        <i class="fas fa-bolt mr-2"></i>
+                        Quick Play
+                    </button>
+                    <button class="bg-primary-600 bg-opacity-20 border-2 border-white text-white px-8 py-3 rounded-xl font-semibold hover:bg-opacity-30 transition-all" data-event="click:handleCreateRoom">
+                        <i class="fas fa-plus mr-2"></i>
+                        Create Room
+                    </button>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: QuickPlaySection -->
+
+        <!-- @COMPONENT: GameSelection -->
+        <section class="mb-12">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-sans font-bold text-white">Choose Your Game</h3>
+                <div class="flex items-center space-x-2 bg-surface rounded-lg p-1">
+                    <button class="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium">All Games</button>
+                    <button class="px-4 py-2 text-gray-400 hover:text-white rounded-md text-sm font-medium">Card Games</button>
+                    <button class="px-4 py-2 text-gray-400 hover:text-white rounded-md text-sm font-medium">Board Games</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                
+                <!-- Card Game: Crazy 8s -->
+                <div class="bg-surface rounded-2xl p-6 border border-surface-light hover:border-primary transition-colors cursor-pointer group">
+                    <!-- Stylized card game illustration -->
+                    <div class="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                        <i class="fas fa-heart text-white text-2xl"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold mb-2">Crazy 8s</h4>
+                    <p class="text-gray-400 text-sm mb-4">Classic shedding card game for 2-8 players</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-users text-primary text-sm"></i>
+                            <span class="text-sm text-gray-300">2-8 Players</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <div class="w-2 h-2 bg-secondary rounded-full"></div>
+                            <span class="text-xs text-secondary" data-bind="game.activeRooms">12 Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Game: Hearts -->
+                <div class="bg-surface rounded-2xl p-6 border border-surface-light hover:border-primary transition-colors cursor-pointer group">
+                    <div class="w-16 h-16 bg-gradient-to-br from-pink-500 to-red-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                        <i class="fas fa-heart text-white text-2xl"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold mb-2">Hearts</h4>
+                    <p class="text-gray-400 text-sm mb-4">Trick-taking game - avoid penalty cards</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-users text-primary text-sm"></i>
+                            <span class="text-sm text-gray-300">4 Players</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <div class="w-2 h-2 bg-secondary rounded-full"></div>
+                            <span class="text-xs text-secondary" data-bind="game.activeRooms">8 Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Game: Spades -->
+                <div class="bg-surface rounded-2xl p-6 border border-surface-light hover:border-primary transition-colors cursor-pointer group">
+                    <div class="w-16 h-16 bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                        <i class="fas fa-spade-suit text-white text-2xl"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold mb-2">Spades</h4>
+                    <p class="text-gray-400 text-sm mb-4">Partnership trick-taking card game</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-users text-primary text-sm"></i>
+                            <span class="text-sm text-gray-300">4 Players</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <div class="w-2 h-2 bg-secondary rounded-full"></div>
+                            <span class="text-xs text-secondary" data-bind="game.activeRooms">6 Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Game: Go Fish -->
+                <div class="bg-surface rounded-2xl p-6 border border-surface-light hover:border-primary transition-colors cursor-pointer group">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-teal-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                        <i class="fas fa-fish text-white text-2xl"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold mb-2">Go Fish</h4>
+                    <p class="text-gray-400 text-sm mb-4">Collect sets of four matching cards</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-users text-primary text-sm"></i>
+                            <span class="text-sm text-gray-300">2-6 Players</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <div class="w-2 h-2 bg-secondary rounded-full"></div>
+                            <span class="text-xs text-secondary" data-bind="game.activeRooms">15 Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Board Game: Chess -->
+                <div class="bg-surface rounded-2xl p-6 border border-surface-light hover:border-primary transition-colors cursor-pointer group">
+                    <div class="w-16 h-16 bg-gradient-to-br from-yellow-600 to-amber-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                        <i class="fas fa-chess-king text-white text-2xl"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold mb-2">Chess</h4>
+                    <p class="text-gray-400 text-sm mb-4">Classic strategic board game</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-users text-primary text-sm"></i>
+                            <span class="text-sm text-gray-300">2 Players</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <div class="w-2 h-2 bg-secondary rounded-full"></div>
+                            <span class="text-xs text-secondary" data-bind="game.activeRooms">24 Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Board Game: Checkers -->
+                <div class="bg-surface rounded-2xl p-6 border border-surface-light hover:border-primary transition-colors cursor-pointer group">
+                    <div class="w-16 h-16 bg-gradient-to-br from-red-600 to-red-700 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                        <i class="fas fa-chess-pawn text-white text-2xl"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold mb-2">Checkers</h4>
+                    <p class="text-gray-400 text-sm mb-4">Traditional strategy game on 8x8 board</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-users text-primary text-sm"></i>
+                            <span class="text-sm text-gray-300">2 Players</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <div class="w-2 h-2 bg-secondary rounded-full"></div>
+                            <span class="text-xs text-secondary" data-bind="game.activeRooms">11 Active</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+        <!-- @END_COMPONENT: GameSelection -->
+
+        <!-- @COMPONENT: ActiveRooms -->
+        <section class="mb-12">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-sans font-bold text-white">Join Active Rooms</h3>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <input type="text" placeholder="Enter room code" class="bg-surface border border-surface-light rounded-lg px-4 py-2 pr-10 text-white placeholder-gray-400 focus:border-primary focus:outline-none">
+                        <button class="absolute right-2 top-1/2 transform -translate-y-1/2 text-primary hover:text-primary-400">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    <button class="text-gray-400 hover:text-white" data-event="click:refreshRooms">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- @MAP: activeRooms.map(room => ( -->
+                <!-- Active Room Card 1 -->
+                <div class="bg-surface rounded-2xl p-6 border border-surface-light hover:border-primary transition-colors">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-heart text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-white" data-bind="room.name">Hearts Masters</h4>
+                                <p class="text-sm text-gray-400" data-bind="room.game">Hearts</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-300" data-bind="room.playerCount">3/4 Players</div>
+                            <div class="text-xs text-secondary">Waiting for 1 more</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3 mb-4">
+                        <!-- @MAP: room.players.map(player => ( -->
+                        <!-- Player avatar showing occupancy -->
+                        <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" alt="Player" class="w-8 h-8 rounded-full border-2 border-primary" data-mock="true">
+                        <img src="https://pixabay.com/get/g293610c0cef07ae087a2f072c4bc42e297effece504515665e19f2ed59f97f004bf530d822942b9f5d48ebe3007cd061aae82bd15c46bc75ce2b109af2293644_1280.jpg" alt="Player" class="w-8 h-8 rounded-full border-2 border-secondary" data-mock="true">
+                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" alt="Player" class="w-8 h-8 rounded-full border-2 border-accent" data-mock="true">
+                        <!-- @END_MAP )) -->
+                        <div class="w-8 h-8 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center">
+                            <i class="fas fa-plus text-gray-600 text-xs"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4 text-sm text-gray-400">
+                            <span><i class="fas fa-code text-primary mr-1"></i>ABC123</span>
+                            <span><i class="fas fa-lock text-accent mr-1"></i>Private</span>
+                        </div>
+                        <button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors" data-event="click:joinRoom">
+                            Join Room
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Active Room Card 2 -->
+                <div class="bg-surface rounded-2xl p-6 border border-surface-light hover:border-primary transition-colors">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-br from-yellow-600 to-amber-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-chess-king text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-white" data-bind="room.name">Quick Chess</h4>
+                                <p class="text-sm text-gray-400" data-bind="room.game">Chess</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-300" data-bind="room.playerCount">1/2 Players</div>
+                            <div class="text-xs text-secondary">Waiting for opponent</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3 mb-4">
+                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" alt="Player" class="w-8 h-8 rounded-full border-2 border-primary" data-mock="true">
+                        <div class="w-8 h-8 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center">
+                            <i class="fas fa-plus text-gray-600 text-xs"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4 text-sm text-gray-400">
+                            <span><i class="fas fa-globe text-primary mr-1"></i>Public</span>
+                            <span><i class="fas fa-clock text-accent mr-1"></i>5 min</span>
+                        </div>
+                        <button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors" data-event="click:joinRoom">
+                            Join Room
+                        </button>
+                    </div>
+                </div>
+
+                <!-- In-Progress Room (Spectator Option) -->
+                <div class="bg-surface rounded-2xl p-6 border border-surface-light hover:border-accent transition-colors">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg flex items-center justify-center relative">
+                                <i class="fas fa-spade-suit text-white"></i>
+                                <div class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-white" data-bind="room.name">Spades Tournament</h4>
+                                <p class="text-sm text-gray-400" data-bind="room.game">Spades • In Progress</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-300" data-bind="room.playerCount">4/4 Players</div>
+                            <div class="text-xs text-accent">Game Active</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3 mb-4">
+                        <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" alt="Player" class="w-8 h-8 rounded-full border-2 border-primary" data-mock="true">
+                        <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" alt="Player" class="w-8 h-8 rounded-full border-2 border-secondary" data-mock="true">
+                        <img src="https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" alt="Player" class="w-8 h-8 rounded-full border-2 border-accent" data-mock="true">
+                        <img src="https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" alt="Player" class="w-8 h-8 rounded-full border-2 border-purple-500" data-mock="true">
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4 text-sm text-gray-400">
+                            <span><i class="fas fa-eye text-accent mr-1"></i>3 Spectators</span>
+                            <span><i class="fas fa-trophy text-accent mr-1"></i>Tournament</span>
+                        </div>
+                        <button class="bg-accent text-dark px-4 py-2 rounded-lg hover:bg-yellow-500 transition-colors font-medium" data-event="click:spectateGame">
+                            <i class="fas fa-eye mr-1"></i>
+                            Spectate
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Empty Room Placeholder -->
+                <div class="bg-surface rounded-2xl p-6 border border-surface-light hover:border-primary transition-colors">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-teal-500 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-fish text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-white" data-bind="room.name">Casual Go Fish</h4>
+                                <p class="text-sm text-gray-400" data-bind="room.game">Go Fish</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-300" data-bind="room.playerCount">2/6 Players</div>
+                            <div class="text-xs text-secondary">Need 4 more</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3 mb-4">
+                        <img src="https://images.unsplash.com/photo-1463453091185-61582044d556?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" alt="Player" class="w-8 h-8 rounded-full border-2 border-primary" data-mock="true">
+                        <img src="https://images.unsplash.com/photo-1554151228-14d9def656e4?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" alt="Player" class="w-8 h-8 rounded-full border-2 border-secondary" data-mock="true">
+                        <div class="w-8 h-8 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center">
+                            <i class="fas fa-plus text-gray-600 text-xs"></i>
+                        </div>
+                        <div class="w-8 h-8 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center">
+                            <i class="fas fa-plus text-gray-600 text-xs"></i>
+                        </div>
+                        <div class="w-8 h-8 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center">
+                            <i class="fas fa-plus text-gray-600 text-xs"></i>
+                        </div>
+                        <div class="w-8 h-8 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center">
+                            <i class="fas fa-plus text-gray-600 text-xs"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4 text-sm text-gray-400">
+                            <span><i class="fas fa-globe text-primary mr-1"></i>Public</span>
+                            <span><i class="fas fa-users-cog text-accent mr-1"></i>Casual</span>
+                        </div>
+                        <button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors" data-event="click:joinRoom">
+                            Join Room
+                        </button>
+                    </div>
+                </div>
+                <!-- @END_MAP )) -->
+
+            </div>
+        </section>
+        <!-- @END_COMPONENT: ActiveRooms -->
+
+        <!-- @COMPONENT: InGameInterface (Sample) -->
+        <section class="mb-12">
+            <h3 class="text-2xl font-sans font-bold text-white mb-6">In-Game Experience Preview</h3>
+            
+            <!-- Card Game Interface Example -->
+            <div class="bg-surface rounded-2xl p-6 border border-surface-light">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-heart text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-white">Hearts - Room ABC123</h4>
+                            <p class="text-sm text-gray-400">Turn 8 of 13 • Round 2</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button class="text-gray-400 hover:text-white" data-event="click:toggleChat">
+                            <i class="fas fa-comments"></i>
+                        </button>
+                        <button class="text-gray-400 hover:text-white" data-event="click:gameSettings">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <button class="text-red-400 hover:text-red-300" data-event="click:leaveGame">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Game State Display -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <!-- Player 1 (Current User) -->
+                    <div class="bg-primary bg-opacity-20 rounded-xl p-4 border-2 border-primary">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" alt="You" class="w-8 h-8 rounded-full" data-mock="true">
+                            <span class="font-medium text-white">You</span>
+                            <i class="fas fa-crown text-yellow-400"></i>
+                        </div>
+                        <div class="text-sm text-gray-300">
+                            <div>Score: <span class="text-white font-medium" data-bind="player.score">25</span></div>
+                            <div>Cards: <span class="text-white font-medium" data-bind="player.cardCount">7</span></div>
+                        </div>
+                        <div class="text-xs text-primary font-medium mt-2">YOUR TURN</div>
+                    </div>
+
+                    <!-- Player 2 -->
+                    <div class="bg-surface-light rounded-xl p-4 border border-surface-light">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" alt="Player" class="w-8 h-8 rounded-full" data-mock="true">
+                            <span class="font-medium text-white" data-bind="player.username">Mike92</span>
+                        </div>
+                        <div class="text-sm text-gray-300">
+                            <div>Score: <span class="text-white font-medium" data-bind="player.score">18</span></div>
+                            <div>Cards: <span class="text-white font-medium" data-bind="player.cardCount">6</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Player 3 -->
+                    <div class="bg-surface-light rounded-xl p-4 border border-surface-light">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <img src="https://pixabay.com/get/g996090de924db528248254ce0a0beebd40c2a23d9fb9dabed85cf2d63187728d7ed4eef3ac5ecfdcc7452dffc1c2a72794db47c33d9bb72cd0b2c3e8700a3d58_1280.jpg" alt="Player" class="w-8 h-8 rounded-full" data-mock="true">
+                            <span class="font-medium text-white" data-bind="player.username">Sarah_K</span>
+                        </div>
+                        <div class="text-sm text-gray-300">
+                            <div>Score: <span class="text-white font-medium" data-bind="player.score">31</span></div>
+                            <div>Cards: <span class="text-white font-medium" data-bind="player.cardCount">8</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Player 4 -->
+                    <div class="bg-surface-light rounded-xl p-4 border border-surface-light">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" alt="Player" class="w-8 h-8 rounded-full" data-mock="true">
+                            <span class="font-medium text-white" data-bind="player.username">Alex_P</span>
+                        </div>
+                        <div class="text-sm text-gray-300">
+                            <div>Score: <span class="text-white font-medium" data-bind="player.score">42</span></div>
+                            <div>Cards: <span class="text-white font-medium" data-bind="player.cardCount">5</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Game Board Area -->
+                <div class="bg-dark rounded-xl p-8 mb-6">
+                    <div class="text-center mb-4">
+                        <h5 class="text-lg font-medium text-white mb-2">Current Trick</h5>
+                        <p class="text-sm text-gray-400">Cards played this round</p>
+                    </div>
+                    
+                    <!-- Cards on the table -->
+                    <div class="flex items-center justify-center space-x-4 mb-6">
+                        <!-- Played Cards -->
+                        <div class="w-16 h-24 bg-white rounded-lg shadow-lg flex items-center justify-center border-2 border-red-500">
+                            <div class="text-center">
+                                <div class="text-red-500 font-bold">Q</div>
+                                <i class="fas fa-heart text-red-500"></i>
+                            </div>
+                        </div>
+                        <div class="w-16 h-24 bg-white rounded-lg shadow-lg flex items-center justify-center border-2 border-gray-800">
+                            <div class="text-center">
+                                <div class="text-gray-800 font-bold">7</div>
+                                <i class="fas fa-spade-suit text-gray-800"></i>
+                            </div>
+                        </div>
+                        <div class="w-16 h-24 bg-gray-100 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center">
+                            <span class="text-gray-400 text-xs">Waiting</span>
+                        </div>
+                        <div class="w-16 h-24 bg-gray-100 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center">
+                            <span class="text-gray-400 text-xs">Waiting</span>
+                        </div>
+                    </div>
+
+                    <!-- Your Hand -->
+                    <div class="text-center">
+                        <h6 class="text-sm font-medium text-white mb-3">Your Hand - Choose a card to play</h6>
+                        <div class="flex items-center justify-center space-x-2 flex-wrap">
+                            <!-- @MAP: playerHand.map(card => ( -->
+                            <!-- Playable Cards -->
+                            <div class="w-14 h-20 bg-white rounded-lg shadow-md flex items-center justify-center cursor-pointer hover:scale-105 hover:-translate-y-2 transition-transform border border-primary" data-event="click:playCard" data-mock="true">
+                                <div class="text-center">
+                                    <div class="text-red-500 font-bold text-sm">A</div>
+                                    <i class="fas fa-heart text-red-500 text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="w-14 h-20 bg-white rounded-lg shadow-md flex items-center justify-center cursor-pointer hover:scale-105 hover:-translate-y-2 transition-transform" data-event="click:playCard" data-mock="true">
+                                <div class="text-center">
+                                    <div class="text-red-500 font-bold text-sm">K</div>
+                                    <i class="fas fa-diamond text-red-500 text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="w-14 h-20 bg-white rounded-lg shadow-md flex items-center justify-center cursor-not-allowed opacity-50" data-mock="true">
+                                <div class="text-center">
+                                    <div class="text-gray-800 font-bold text-sm">J</div>
+                                    <i class="fas fa-club text-gray-800 text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="w-14 h-20 bg-white rounded-lg shadow-md flex items-center justify-center cursor-pointer hover:scale-105 hover:-translate-y-2 transition-transform" data-event="click:playCard" data-mock="true">
+                                <div class="text-center">
+                                    <div class="text-red-500 font-bold text-sm">9</div>
+                                    <i class="fas fa-heart text-red-500 text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="w-14 h-20 bg-white rounded-lg shadow-md flex items-center justify-center cursor-pointer hover:scale-105 hover:-translate-y-2 transition-transform" data-event="click:playCard" data-mock="true">
+                                <div class="text-center">
+                                    <div class="text-gray-800 font-bold text-sm">10</div>
+                                    <i class="fas fa-spade-suit text-gray-800 text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="w-14 h-20 bg-white rounded-lg shadow-md flex items-center justify-center cursor-pointer hover:scale-105 hover:-translate-y-2 transition-transform" data-event="click:playCard" data-mock="true">
+                                <div class="text-center">
+                                    <div class="text-red-500 font-bold text-sm">8</div>
+                                    <i class="fas fa-diamond text-red-500 text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="w-14 h-20 bg-white rounded-lg shadow-md flex items-center justify-center cursor-pointer hover:scale-105 hover:-translate-y-2 transition-transform" data-event="click:playCard" data-mock="true">
+                                <div class="text-center">
+                                    <div class="text-gray-800 font-bold text-sm">3</div>
+                                    <i class="fas fa-club text-gray-800 text-sm"></i>
+                                </div>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">Highlighted cards can be played. Grayed out cards don't follow suit.</p>
+                    </div>
+                </div>
+
+                <!-- Game Chat -->
+                <div class="bg-surface-light rounded-xl">
+                    <div class="p-4 border-b border-surface">
+                        <h6 class="font-medium text-white">Game Chat</h6>
+                    </div>
+                    <div class="p-4 h-32 overflow-y-auto space-y-2">
+                        <!-- @MAP: chatMessages.map(message => ( -->
+                        <div class="flex items-start space-x-2" data-mock="true">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" alt="Player" class="w-6 h-6 rounded-full" data-mock="true">
+                            <div>
+                                <span class="text-sm font-medium text-primary">Mike92</span>
+                                <span class="text-sm text-gray-300 ml-2">Good move!</span>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-2" data-mock="true">
+                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&h=150" alt="Player" class="w-6 h-6 rounded-full" data-mock="true">
+                            <div>
+                                <span class="text-sm font-medium text-secondary">Sarah_K</span>
+                                <span class="text-sm text-gray-300 ml-2">Thanks! This is fun 😄</span>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+                    <div class="p-4 border-t border-surface">
+                        <div class="flex space-x-2">
+                            <input type="text" placeholder="Type a message..." class="flex-1 bg-surface border border-surface rounded-lg px-3 py-2 text-sm text-white placeholder-gray-400 focus:border-primary focus:outline-none" data-event="keypress:sendMessage">
+                            <button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors" data-event="click:sendMessage">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: InGameInterface -->
+
+    </main>
+
+    <!-- @COMPONENT: CreateRoomModal (Hidden by default) -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="createRoomModal" data-modal="createRoom">
+        <div class="bg-surface rounded-2xl p-8 w-full max-w-md mx-4 border border-surface-light">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-sans font-bold text-white">Create New Room</h3>
+                <button class="text-gray-400 hover:text-white" data-event="click:closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form class="space-y-6" data-event="submit:createRoom">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Room Name</label>
+                    <input type="text" class="w-full bg-dark border border-surface-light rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-primary focus:outline-none" placeholder="Enter room name..." required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Game Type</label>
+                    <select class="w-full bg-dark border border-surface-light rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none" required>
+                        <option value="">Select a game...</option>
+                        <option value="crazy8s">Crazy 8s</option>
+                        <option value="hearts">Hearts</option>
+                        <option value="spades">Spades</option>
+                        <option value="gofish">Go Fish</option>
+                        <option value="chess">Chess</option>
+                        <option value="checkers">Checkers</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Max Players</label>
+                    <select class="w-full bg-dark border border-surface-light rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none" required>
+                        <option value="2">2 Players</option>
+                        <option value="3">3 Players</option>
+                        <option value="4" selected>4 Players</option>
+                        <option value="5">5 Players</option>
+                        <option value="6">6 Players</option>
+                        <option value="7">7 Players</option>
+                        <option value="8">8 Players</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <input type="checkbox" id="privateRoom" class="w-4 h-4 text-primary bg-dark border-gray-600 rounded focus:ring-primary focus:ring-2">
+                    <label for="privateRoom" class="text-sm text-gray-300">Make room private (requires code to join)</label>
+                </div>
+
+                <div class="flex space-x-3">
+                    <button type="button" class="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-500 transition-colors" data-event="click:closeModal">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 bg-primary text-white py-3 rounded-lg hover:bg-primary-600 transition-colors">
+                        Create Room
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: CreateRoomModal -->
+
+    <script>
+        // TODO: Implement business logic, API calls, and state management
+        
+        (function() {
+            'use strict';
+            
+            // Modal management
+            const createRoomModal = document.getElementById('createRoomModal');
+            
+            // Mock data for demonstration
+            const mockData = {
+                user: {
+                    username: 'Player123',
+                    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d',
+                    status: 'online'
+                },
+                activeRooms: [
+                    {
+                        id: 1,
+                        name: 'Hearts Masters',
+                        game: 'Hearts',
+                        playerCount: '3/4',
+                        players: [],
+                        code: 'ABC123',
+                        isPrivate: true,
+                        status: 'waiting'
+                    }
+                ]
+            };
+
+            // Event handlers for interactive elements
+            document.addEventListener('click', function(e) {
+                const target = e.target.closest('[data-event]');
+                if (!target) return;
+
+                const eventType = target.getAttribute('data-event');
+                
+                switch(eventType) {
+                    case 'click:handleQuickPlay':
+                        console.log('Quick Play clicked - would initiate matchmaking');
+                        // TODO: Implement matchmaking logic
+                        break;
+                        
+                    case 'click:handleCreateRoom':
+                        createRoomModal.classList.remove('hidden');
+                        break;
+                        
+                    case 'click:closeModal':
+                        createRoomModal.classList.add('hidden');
+                        break;
+                        
+                    case 'click:joinRoom':
+                        console.log('Join Room clicked - would connect to room');
+                        // TODO: Implement room joining logic
+                        break;
+                        
+                    case 'click:spectateGame':
+                        console.log('Spectate clicked - would enter spectator mode');
+                        // TODO: Implement spectator mode
+                        break;
+                        
+                    case 'click:playCard':
+                        console.log('Card played - would send move to server');
+                        // TODO: Implement card playing logic
+                        break;
+                        
+                    case 'click:sendMessage':
+                        // TODO: Implement chat message sending
+                        break;
+                }
+            });
+
+            // Form submission handlers
+            document.addEventListener('submit', function(e) {
+                const form = e.target;
+                if (form.getAttribute('data-event') === 'submit:createRoom') {
+                    e.preventDefault();
+                    console.log('Create room form submitted');
+                    // TODO: Implement room creation logic
+                    createRoomModal.classList.add('hidden');
+                }
+            });
+
+            // Chat message handling
+            document.addEventListener('keypress', function(e) {
+                if (e.target.getAttribute('data-event') === 'keypress:sendMessage' && e.key === 'Enter') {
+                    console.log('Chat message sent via Enter key');
+                    // TODO: Implement chat message logic
+                    e.target.value = '';
+                }
+            });
+
+            console.log('GameHub initialized - Ready for real-time multiplayer functionality');
+        })();
+    </script>
+
+</body>
+</html>

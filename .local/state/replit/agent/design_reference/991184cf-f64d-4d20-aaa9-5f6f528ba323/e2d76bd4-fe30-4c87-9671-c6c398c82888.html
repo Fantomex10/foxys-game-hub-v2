@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameHub - Multiplayer Board & Card Games</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    'inter': ['Inter', 'sans-serif'],
+                },
+                colors: {
+                    'game-primary': '#6366F1',
+                    'game-secondary': '#475569',
+                    'game-accent': '#10B981',
+                    'game-dark': '#1E293B',
+                    'game-darker': '#0F172A',
+                    'game-light': '#F1F5F9',
+                }
+            }
+        }
+    };
+    </script>
+</head>
+
+<body class="bg-game-dark text-white font-inter min-h-screen">
+    <!-- @COMPONENT: AppHeader -->
+    <header class="bg-game-darker border-b border-slate-700 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-gamepad text-game-primary text-2xl"></i>
+                        <h1 class="text-2xl font-bold text-white">GameHub</h1>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="hidden md:flex items-center space-x-2 text-sm text-slate-300">
+                        <div class="w-2 h-2 bg-game-accent rounded-full animate-pulse"></div>
+                        <span data-bind="onlineCount">1,247</span>
+                        <span>online</span>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-game-primary rounded-full flex items-center justify-center">
+                            <span class="text-sm font-semibold" data-bind="user.initials">JD</span>
+                        </div>
+                        <span class="hidden sm:inline text-sm" data-bind="user.username">Guest_Player</span>
+                    </div>
+                    
+                    <button class="p-2 hover:bg-slate-700 rounded-lg transition-colors" data-event="click:handleSettings">
+                        <i class="fas fa-cog text-slate-400"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: AppHeader -->
+
+    <!-- @COMPONENT: MainContent -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Quick Actions Section -->
+        <!-- @COMPONENT: QuickActions -->
+        <section class="mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <button class="bg-game-primary hover:bg-indigo-600 text-white p-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg" 
+                        data-event="click:navigateToCreateRoom">
+                    <div class="text-center">
+                        <i class="fas fa-plus-circle text-3xl mb-3"></i>
+                        <h3 class="text-xl font-semibold mb-2">Create Room</h3>
+                        <p class="text-indigo-100 text-sm">Host a game with custom rules</p>
+                    </div>
+                </button>
+                
+                <button class="bg-slate-700 hover:bg-slate-600 text-white p-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg" 
+                        data-event="click:navigateToJoinRoom">
+                    <div class="text-center">
+                        <i class="fas fa-sign-in-alt text-3xl mb-3"></i>
+                        <h3 class="text-xl font-semibold mb-2">Join Room</h3>
+                        <p class="text-slate-300 text-sm">Enter a room code to join friends</p>
+                    </div>
+                </button>
+                
+                <button class="bg-game-accent hover:bg-emerald-600 text-white p-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg" 
+                        data-event="click:navigateToQuickPlay">
+                    <div class="text-center">
+                        <i class="fas fa-bolt text-3xl mb-3"></i>
+                        <h3 class="text-xl font-semibold mb-2">Quick Play</h3>
+                        <p class="text-emerald-100 text-sm">Find a match instantly</p>
+                    </div>
+                </button>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: QuickActions -->
+
+        <!-- Game Categories -->
+        <!-- @COMPONENT: GameCategories -->
+        <section class="mb-8">
+            <h2 class="text-2xl font-bold mb-6">Choose Your Game</h2>
+            
+            <!-- Card Games -->
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-heart text-red-400 mr-2"></i>
+                    Card Games
+                    <span class="ml-2 text-sm text-slate-400">(2-8 players)</span>
+                </h3>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- @MAP: cardGames.map(game => ( -->
+                    <div class="bg-slate-800 hover:bg-slate-700 p-4 rounded-lg transition-all duration-200 cursor-pointer group" 
+                         data-event="click:selectGame" data-game="crazy8s">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-layer-group text-white text-xl"></i>
+                            </div>
+                            <div class="text-xs text-slate-400">
+                                <i class="fas fa-users mr-1"></i>
+                                <span data-bind="game.playerCount">2-8</span>
+                            </div>
+                        </div>
+                        <h4 class="font-semibold mb-2" data-bind="game.name">Crazy 8s</h4>
+                        <p class="text-sm text-slate-400 mb-2" data-bind="game.description">Classic shedding card game</p>
+                        <div class="text-xs text-game-accent" data-bind="game.activeRooms">12 active rooms</div>
+                    </div>
+
+                    <div class="bg-slate-800 hover:bg-slate-700 p-4 rounded-lg transition-all duration-200 cursor-pointer group" 
+                         data-event="click:selectGame" data-game="hearts">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-12 h-12 bg-pink-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-heart text-white text-xl"></i>
+                            </div>
+                            <div class="text-xs text-slate-400">
+                                <i class="fas fa-users mr-1"></i>
+                                <span data-bind="game.playerCount">4</span>
+                            </div>
+                        </div>
+                        <h4 class="font-semibold mb-2" data-bind="game.name">Hearts</h4>
+                        <p class="text-sm text-slate-400 mb-2" data-bind="game.description">Avoid penalty cards</p>
+                        <div class="text-xs text-game-accent" data-bind="game.activeRooms">8 active rooms</div>
+                    </div>
+
+                    <div class="bg-slate-800 hover:bg-slate-700 p-4 rounded-lg transition-all duration-200 cursor-pointer group" 
+                         data-event="click:selectGame" data-game="spades">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-spade text-white text-xl"></i>
+                            </div>
+                            <div class="text-xs text-slate-400">
+                                <i class="fas fa-users mr-1"></i>
+                                <span data-bind="game.playerCount">4</span>
+                            </div>
+                        </div>
+                        <h4 class="font-semibold mb-2" data-bind="game.name">Spades</h4>
+                        <p class="text-sm text-slate-400 mb-2" data-bind="game.description">Partnership trick-taking</p>
+                        <div class="text-xs text-game-accent" data-bind="game.activeRooms">15 active rooms</div>
+                    </div>
+
+                    <div class="bg-slate-800 hover:bg-slate-700 p-4 rounded-lg transition-all duration-200 cursor-pointer group" 
+                         data-event="click:selectGame" data-game="gofish">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-fish text-white text-xl"></i>
+                            </div>
+                            <div class="text-xs text-slate-400">
+                                <i class="fas fa-users mr-1"></i>
+                                <span data-bind="game.playerCount">2-6</span>
+                            </div>
+                        </div>
+                        <h4 class="font-semibold mb-2" data-bind="game.name">Go Fish</h4>
+                        <p class="text-sm text-slate-400 mb-2" data-bind="game.description">Collect matching sets</p>
+                        <div class="text-xs text-game-accent" data-bind="game.activeRooms">6 active rooms</div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+            </div>
+
+            <!-- Board Games -->
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-chess text-yellow-400 mr-2"></i>
+                    Board Games
+                    <span class="ml-2 text-sm text-slate-400">(2 players)</span>
+                </h3>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- @MAP: boardGames.map(game => ( -->
+                    <div class="bg-slate-800 hover:bg-slate-700 p-4 rounded-lg transition-all duration-200 cursor-pointer group" 
+                         data-event="click:selectGame" data-game="chess">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-12 h-12 bg-yellow-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-chess text-white text-xl"></i>
+                            </div>
+                            <div class="text-xs text-slate-400">
+                                <i class="fas fa-users mr-1"></i>
+                                <span data-bind="game.playerCount">2</span>
+                            </div>
+                        </div>
+                        <h4 class="font-semibold mb-2" data-bind="game.name">Chess</h4>
+                        <p class="text-sm text-slate-400 mb-2" data-bind="game.description">Classic strategy game</p>
+                        <div class="text-xs text-game-accent" data-bind="game.activeRooms">23 active rooms</div>
+                    </div>
+
+                    <div class="bg-slate-800 hover:bg-slate-700 p-4 rounded-lg transition-all duration-200 cursor-pointer group" 
+                         data-event="click:selectGame" data-game="checkers">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-circle text-white text-xl"></i>
+                            </div>
+                            <div class="text-xs text-slate-400">
+                                <i class="fas fa-users mr-1"></i>
+                                <span data-bind="game.playerCount">2</span>
+                            </div>
+                        </div>
+                        <h4 class="font-semibold mb-2" data-bind="game.name">Checkers</h4>
+                        <p class="text-sm text-slate-400 mb-2" data-bind="game.description">Jump to victory</p>
+                        <div class="text-xs text-game-accent" data-bind="game.activeRooms">11 active rooms</div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: GameCategories -->
+
+        <!-- Active Rooms Section -->
+        <!-- @COMPONENT: ActiveRooms -->
+        <section class="mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold">Active Rooms</h2>
+                <button class="text-game-accent hover:text-emerald-400 text-sm font-medium" data-event="click:refreshRooms">
+                    <i class="fas fa-sync-alt mr-1"></i>
+                    Refresh
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <!-- @MAP: activeRooms.map(room => ( -->
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-10 h-10 bg-game-primary rounded-lg flex items-center justify-center">
+                                <i class="fas fa-heart text-white" data-bind="room.gameIcon"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold" data-bind="room.name">Hearts Tournament</h3>
+                                <div class="flex items-center space-x-4 text-sm text-slate-400">
+                                    <span>Host: <span data-bind="room.host" class="text-white">PlayerOne</span></span>
+                                    <span><i class="fas fa-users mr-1"></i><span data-bind="room.currentPlayers">3</span>/<span data-bind="room.maxPlayers">4</span></span>
+                                    <span class="flex items-center">
+                                        <div class="w-2 h-2 bg-game-accent rounded-full mr-1"></div>
+                                        <span data-bind="room.status">Waiting for players</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs bg-slate-700 px-2 py-1 rounded-full" data-bind="room.gameMode">Standard Rules</span>
+                            <button class="bg-game-primary hover:bg-indigo-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors" 
+                                    data-event="click:joinRoom" data-room-id="room.id">
+                                Join Room
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-chess text-white" data-bind="room.gameIcon"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold" data-bind="room.name">Quick Chess Match</h3>
+                                <div class="flex items-center space-x-4 text-sm text-slate-400">
+                                    <span>Host: <span data-bind="room.host" class="text-white">ChessMaster</span></span>
+                                    <span><i class="fas fa-users mr-1"></i><span data-bind="room.currentPlayers">1</span>/<span data-bind="room.maxPlayers">2</span></span>
+                                    <span class="flex items-center">
+                                        <div class="w-2 h-2 bg-game-accent rounded-full mr-1"></div>
+                                        <span data-bind="room.status">Waiting for players</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs bg-slate-700 px-2 py-1 rounded-full" data-bind="room.gameMode">10 min timer</span>
+                            <button class="bg-game-primary hover:bg-indigo-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors" 
+                                    data-event="click:joinRoom" data-room-id="room.id">
+                                Join Room
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 p-4 rounded-lg border border-orange-600 hover:border-orange-500 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-layer-group text-white" data-bind="room.gameIcon"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold" data-bind="room.name">Crazy 8s Championship</h3>
+                                <div class="flex items-center space-x-4 text-sm text-slate-400">
+                                    <span>Host: <span data-bind="room.host" class="text-white">GameNinja</span></span>
+                                    <span><i class="fas fa-users mr-1"></i><span data-bind="room.currentPlayers">4</span>/<span data-bind="room.maxPlayers">6</span></span>
+                                    <span class="flex items-center">
+                                        <div class="w-2 h-2 bg-orange-500 rounded-full mr-1 animate-pulse"></div>
+                                        <span data-bind="room.status" class="text-orange-400">In Progress</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs bg-slate-700 px-2 py-1 rounded-full" data-bind="room.gameMode">Wild Cards</span>
+                            <button class="bg-slate-600 hover:bg-slate-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors" 
+                                    data-event="click:spectateRoom" data-room-id="room.id">
+                                Spectate
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_MAP )) -->
+            </div>
+        </section>
+        <!-- @END_COMPONENT: ActiveRooms -->
+    </main>
+    <!-- @END_COMPONENT: MainContent -->
+
+    <!-- Modal Overlays -->
+    <!-- @COMPONENT: CreateRoomModal -->
+    <div id="createRoomModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden" data-modal="createRoom">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-slate-800 rounded-xl p-6 w-full max-w-md">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold">Create New Room</h3>
+                    <button class="text-slate-400 hover:text-white" data-event="click:closeModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <form class="space-y-4" data-event="submit:createRoom">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Room Name</label>
+                        <input type="text" placeholder="Enter room name..." 
+                               class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg focus:border-game-primary focus:outline-none"
+                               data-bind="formData.roomName" data-mock="true">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Select Game</label>
+                        <select class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg focus:border-game-primary focus:outline-none"
+                                data-bind="formData.selectedGame" data-mock="true">
+                            <option value="" data-mock="true">Choose a game...</option>
+                            <option value="hearts" data-mock="true">Hearts</option>
+                            <option value="spades" data-mock="true">Spades</option>
+                            <option value="crazy8s" data-mock="true">Crazy 8s</option>
+                            <option value="gofish" data-mock="true">Go Fish</option>
+                            <option value="chess" data-mock="true">Chess</option>
+                            <option value="checkers" data-mock="true">Checkers</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Max Players</label>
+                        <select class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg focus:border-game-primary focus:outline-none"
+                                data-bind="formData.maxPlayers" data-mock="true">
+                            <option value="2" data-mock="true">2 Players</option>
+                            <option value="4" data-mock="true">4 Players</option>
+                            <option value="6" data-mock="true">6 Players</option>
+                            <option value="8" data-mock="true">8 Players</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="w-4 h-4 text-game-primary bg-slate-700 border-slate-600 rounded focus:ring-game-primary"
+                                   data-bind="formData.isPrivate" data-mock="true">
+                            <span class="text-sm">Private Room (requires room code)</span>
+                        </label>
+                    </div>
+
+                    <div class="flex space-x-3 pt-4">
+                        <button type="button" class="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium transition-colors"
+                                data-event="click:closeModal">
+                            Cancel
+                        </button>
+                        <button type="submit" class="flex-1 py-3 bg-game-primary hover:bg-indigo-600 rounded-lg font-medium transition-colors">
+                            Create Room
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: CreateRoomModal -->
+
+    <!-- @COMPONENT: JoinRoomModal -->
+    <div id="joinRoomModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden" data-modal="joinRoom">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-slate-800 rounded-xl p-6 w-full max-w-md">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold">Join Room</h3>
+                    <button class="text-slate-400 hover:text-white" data-event="click:closeModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <form class="space-y-4" data-event="submit:joinRoom">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Room Code</label>
+                        <input type="text" placeholder="Enter room code..." 
+                               class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg focus:border-game-primary focus:outline-none text-center text-xl tracking-widest"
+                               maxlength="6" data-bind="formData.roomCode" data-mock="true">
+                        <p class="text-xs text-slate-400 mt-1">Ask your friend for the 6-digit room code</p>
+                    </div>
+
+                    <div class="flex space-x-3 pt-4">
+                        <button type="button" class="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium transition-colors"
+                                data-event="click:closeModal">
+                            Cancel
+                        </button>
+                        <button type="submit" class="flex-1 py-3 bg-game-primary hover:bg-indigo-600 rounded-lg font-medium transition-colors">
+                            Join Room
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: JoinRoomModal -->
+
+    <!-- Bottom Navigation for Mobile -->
+    <!-- @COMPONENT: MobileNavigation -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-game-darker border-t border-slate-700">
+        <div class="grid grid-cols-4 h-16">
+            <button class="flex flex-col items-center justify-center text-game-primary" data-event="click:navigateToHome">
+                <i class="fas fa-home text-lg"></i>
+                <span class="text-xs mt-1">Home</span>
+            </button>
+            <button class="flex flex-col items-center justify-center text-slate-400 hover:text-white" data-event="click:navigateToRooms">
+                <i class="fas fa-list text-lg"></i>
+                <span class="text-xs mt-1">Rooms</span>
+            </button>
+            <button class="flex flex-col items-center justify-center text-slate-400 hover:text-white" data-event="click:navigateToFriends">
+                <i class="fas fa-users text-lg"></i>
+                <span class="text-xs mt-1">Friends</span>
+            </button>
+            <button class="flex flex-col items-center justify-center text-slate-400 hover:text-white" data-event="click:navigateToProfile">
+                <i class="fas fa-user text-lg"></i>
+                <span class="text-xs mt-1">Profile</span>
+            </button>
+        </div>
+    </nav>
+    <!-- @END_COMPONENT: MobileNavigation -->
+
+    <script>
+    (function() {
+        // TODO: Implement business logic, API calls, and state management
+        
+        // Modal management
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+        
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+        
+        // Event listeners for demo purposes
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('[data-event]');
+            if (!target) return;
+            
+            const event = target.getAttribute('data-event');
+            
+            switch(event) {
+                case 'click:navigateToCreateRoom':
+                    showModal('createRoomModal');
+                    break;
+                case 'click:navigateToJoinRoom':
+                    showModal('joinRoomModal');
+                    break;
+                case 'click:closeModal':
+                    const modal = target.closest('[data-modal]');
+                    if (modal) modal.classList.add('hidden');
+                    break;
+                case 'click:navigateToQuickPlay':
+                    // TODO: Implement quick play matchmaking
+                    console.log('Navigate to quick play');
+                    break;
+            }
+        });
+        
+        // Form submissions
+        document.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const event = e.target.getAttribute('data-event');
+            
+            switch(event) {
+                case 'submit:createRoom':
+                    // TODO: Implement room creation logic
+                    console.log('Create room form submitted');
+                    hideModal('createRoomModal');
+                    break;
+                case 'submit:joinRoom':
+                    // TODO: Implement room joining logic
+                    console.log('Join room form submitted');
+                    hideModal('joinRoomModal');
+                    break;
+            }
+        });
+        
+        // Close modals when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.matches('[data-modal]')) {
+                e.target.classList.add('hidden');
+            }
+        });
+    })();
+    </script>
+</body>
+</html>

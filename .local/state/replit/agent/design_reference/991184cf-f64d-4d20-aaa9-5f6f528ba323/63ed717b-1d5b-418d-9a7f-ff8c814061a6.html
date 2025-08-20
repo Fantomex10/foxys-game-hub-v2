@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameHub - Multiplayer Board & Card Games</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'game-primary': '#1a1a2e',
+                        'game-secondary': '#16213e',
+                        'game-accent': '#0f3460',
+                        'game-highlight': '#533483',
+                        'game-success': '#10b981',
+                        'game-warning': '#f59e0b',
+                        'game-bg': '#0a0a0f',
+                        'game-surface': '#1f1f23',
+                        'game-border': '#2a2a35'
+                    },
+                    fontFamily: {
+                        'game': ['Inter', 'sans-serif'],
+                        'code': ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="bg-game-bg text-white font-game min-h-screen">
+    <!-- @COMPONENT: AppHeader -->
+    <header class="bg-game-primary border-b border-game-border sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-gradient-to-r from-game-highlight to-game-accent rounded-lg flex items-center justify-center">
+                            <i class="fas fa-gamepad text-white text-sm"></i>
+                        </div>
+                        <h1 class="text-xl font-bold text-white">GameHub</h1>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <!-- @STATE: user:object|null = null -->
+                    <div class="flex items-center space-x-3 bg-game-surface px-4 py-2 rounded-lg" data-bind="user">
+                        <div class="w-8 h-8 bg-game-highlight rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-white text-sm"></i>
+                        </div>
+                        <span class="text-sm font-medium" data-mock="true">Player123</span>
+                        <div class="w-2 h-2 bg-game-success rounded-full" title="Online"></div>
+                    </div>
+                    
+                    <button class="p-2 text-gray-400 hover:text-white transition-colors" data-event="click:toggleSettings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: AppHeader -->
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- @COMPONENT: GameSelection [games, onGameSelect] -->
+        <div id="game-selection" class="space-y-8">
+            <div class="text-center space-y-4">
+                <h2 class="text-4xl font-bold text-white">Choose Your Game</h2>
+                <p class="text-gray-300 text-lg max-w-2xl mx-auto">Challenge friends or match with players worldwide in classic board and card games</p>
+            </div>
+
+            <!-- @MAP: availableGames.map(game => ( -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Chess Game Card -->
+                <div class="bg-game-surface border border-game-border rounded-xl p-6 hover:bg-game-secondary transition-all duration-300 cursor-pointer group" data-event="click:selectGame" data-game="chess">
+                    <div class="text-center space-y-4">
+                        <!-- Chess pieces illustration placeholder -->
+                        <div class="w-16 h-16 mx-auto bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-chess text-white text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-white group-hover:text-game-highlight transition-colors">Chess</h3>
+                            <p class="text-gray-400 text-sm mt-1">The classic strategy game</p>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-400">
+                            <span><i class="fas fa-users mr-1"></i>2 Players</span>
+                            <span><i class="fas fa-clock mr-1"></i>15-60 min</span>
+                        </div>
+                        <div class="pt-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-game-success bg-opacity-20 text-game-success">
+                                <div class="w-2 h-2 bg-game-success rounded-full mr-1"></div>
+                                <span data-mock="true">23 playing</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Checkers Game Card -->
+                <div class="bg-game-surface border border-game-border rounded-xl p-6 hover:bg-game-secondary transition-all duration-300 cursor-pointer group" data-event="click:selectGame" data-game="checkers">
+                    <div class="text-center space-y-4">
+                        <div class="w-16 h-16 mx-auto bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-circle text-white text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-white group-hover:text-game-highlight transition-colors">Checkers</h3>
+                            <p class="text-gray-400 text-sm mt-1">Jump and capture to victory</p>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-400">
+                            <span><i class="fas fa-users mr-1"></i>2 Players</span>
+                            <span><i class="fas fa-clock mr-1"></i>10-30 min</span>
+                        </div>
+                        <div class="pt-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-game-success bg-opacity-20 text-game-success">
+                                <div class="w-2 h-2 bg-game-success rounded-full mr-1"></div>
+                                <span data-mock="true">16 playing</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tic-Tac-Toe Game Card -->
+                <div class="bg-game-surface border border-game-border rounded-xl p-6 hover:bg-game-secondary transition-all duration-300 cursor-pointer group" data-event="click:selectGame" data-game="tictactoe">
+                    <div class="text-center space-y-4">
+                        <div class="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-times text-white text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-white group-hover:text-game-highlight transition-colors">Tic-Tac-Toe</h3>
+                            <p class="text-gray-400 text-sm mt-1">Quick strategic fun</p>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-400">
+                            <span><i class="fas fa-users mr-1"></i>2 Players</span>
+                            <span><i class="fas fa-clock mr-1"></i>2-5 min</span>
+                        </div>
+                        <div class="pt-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-game-success bg-opacity-20 text-game-success">
+                                <div class="w-2 h-2 bg-game-success rounded-full mr-1"></div>
+                                <span data-mock="true">41 playing</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Connect Four Game Card -->
+                <div class="bg-game-surface border border-game-border rounded-xl p-6 hover:bg-game-secondary transition-all duration-300 cursor-pointer group" data-event="click:selectGame" data-game="connect4">
+                    <div class="text-center space-y-4">
+                        <div class="w-16 h-16 mx-auto bg-gradient-to-br from-yellow-500 to-yellow-700 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-grip-horizontal text-white text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-white group-hover:text-game-highlight transition-colors">Connect Four</h3>
+                            <p class="text-gray-400 text-sm mt-1">Connect four in a row</p>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-400">
+                            <span><i class="fas fa-users mr-1"></i>2 Players</span>
+                            <span><i class="fas fa-clock mr-1"></i>5-15 min</span>
+                        </div>
+                        <div class="pt-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-game-success bg-opacity-20 text-game-success">
+                                <div class="w-2 h-2 bg-game-success rounded-full mr-1"></div>
+                                <span data-mock="true">8 playing</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_MAP )) -->
+
+            <!-- Quick Actions -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mt-12">
+                <button class="bg-game-highlight hover:bg-opacity-80 text-white px-8 py-3 rounded-lg font-medium transition-all duration-300 flex items-center justify-center space-x-2" data-event="click:quickMatch">
+                    <i class="fas fa-zap"></i>
+                    <span>Quick Match</span>
+                </button>
+                <button class="bg-game-accent hover:bg-opacity-80 text-white px-8 py-3 rounded-lg font-medium transition-all duration-300 flex items-center justify-center space-x-2" data-event="click:createRoom">
+                    <i class="fas fa-plus"></i>
+                    <span>Create Room</span>
+                </button>
+                <button class="bg-game-surface border border-game-border hover:bg-game-secondary text-white px-8 py-3 rounded-lg font-medium transition-all duration-300 flex items-center justify-center space-x-2" data-event="click:joinRoom">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Join Room</span>
+                </button>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: GameSelection -->
+
+        <!-- @COMPONENT: GameLobby [roomCode, players, gameType] -->
+        <div id="game-lobby" class="hidden space-y-6">
+            <div class="flex items-center justify-between">
+                <button class="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors" data-event="click:backToSelection">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back to Games</span>
+                </button>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="text-center">
+                        <div class="text-sm text-gray-400">Room Code</div>
+                        <div class="font-code text-lg text-game-highlight" data-bind="roomCode" data-mock="true">ABC123</div>
+                    </div>
+                    <button class="p-2 text-gray-400 hover:text-white transition-colors" data-event="click:copyRoomCode" title="Copy Room Code">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Game Preview -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-game-surface border border-game-border rounded-xl p-6">
+                        <h3 class="text-xl font-semibold mb-4">Game Preview</h3>
+                        <!-- @FUNCTIONALITY: This should show a preview of the selected game board -->
+                        <div class="aspect-square bg-game-bg rounded-lg flex items-center justify-center" data-implementation="Game preview component">
+                            <div class="text-center space-y-2">
+                                <i class="fas fa-chess text-4xl text-gray-500"></i>
+                                <p class="text-gray-400">Waiting for players...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Game Settings -->
+                    <div class="bg-game-surface border border-game-border rounded-xl p-6">
+                        <h3 class="text-lg font-semibold mb-4">Game Settings</h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-300">Time Control</span>
+                                <select class="bg-game-bg border border-game-border rounded-lg px-3 py-2 text-white" data-bind="timeControl">
+                                    <option>No time limit</option>
+                                    <option>5 minutes</option>
+                                    <option>10 minutes</option>
+                                    <option>15 minutes</option>
+                                </select>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-300">Allow Spectators</span>
+                                <button class="bg-game-highlight text-white px-4 py-2 rounded-lg text-sm" data-bind="allowSpectators" data-event="click:toggleSpectators">
+                                    ON
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Players Panel -->
+                <div class="space-y-6">
+                    <div class="bg-game-surface border border-game-border rounded-xl p-6">
+                        <h3 class="text-lg font-semibold mb-4">Players (1/2)</h3>
+                        <!-- @MAP: players.map(player => ( -->
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3 p-3 bg-game-bg rounded-lg">
+                                <div class="w-10 h-10 bg-game-highlight rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user text-white"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-medium" data-mock="true">Player123</div>
+                                    <div class="text-sm text-gray-400">Host</div>
+                                </div>
+                                <div class="w-3 h-3 bg-game-success rounded-full"></div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-3 p-3 bg-game-bg rounded-lg border-2 border-dashed border-game-border">
+                                <div class="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-plus text-gray-400"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-gray-400">Waiting for player...</div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                        
+                        <button class="w-full mt-4 bg-game-highlight hover:bg-opacity-80 text-white py-3 rounded-lg font-medium transition-all duration-300" data-event="click:startGame" disabled>
+                            <i class="fas fa-play mr-2"></i>
+                            Start Game
+                        </button>
+                    </div>
+
+                    <!-- Spectators -->
+                    <div class="bg-game-surface border border-game-border rounded-xl p-6">
+                        <h3 class="text-lg font-semibold mb-4">Spectators (0)</h3>
+                        <div class="text-center text-gray-400 py-4">
+                            <i class="fas fa-eye text-2xl mb-2"></i>
+                            <p>No spectators yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: GameLobby -->
+
+        <!-- @COMPONENT: GameBoard [gameType, gameState, currentPlayer] -->
+        <div id="game-board" class="hidden">
+            <div class="flex items-center justify-between mb-6">
+                <button class="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors" data-event="click:leaveGame">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Leave Game</span>
+                </button>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="text-center">
+                        <div class="text-sm text-gray-400">Room</div>
+                        <div class="font-code text-lg text-game-highlight" data-mock="true">ABC123</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                <!-- Game Area -->
+                <div class="xl:col-span-3 space-y-6">
+                    <!-- Player Turn Indicator -->
+                    <div class="bg-game-surface border border-game-border rounded-xl p-4">
+                        <div class="flex items-center justify-center space-x-4">
+                            <div class="flex items-center space-x-2" data-bind="currentPlayer">
+                                <div class="w-8 h-8 bg-game-highlight rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user text-white text-sm"></i>
+                                </div>
+                                <span class="font-medium" data-mock="true">Player123</span>
+                                <span class="text-sm text-gray-400">'s turn</span>
+                            </div>
+                            <div class="flex items-center space-x-2 text-sm text-gray-400">
+                                <i class="fas fa-clock"></i>
+                                <span data-mock="true">05:42</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chess Board Example -->
+                    <div class="bg-game-surface border border-game-border rounded-xl p-6" data-implementation="Dynamic game board based on selected game">
+                        <div class="aspect-square max-w-2xl mx-auto">
+                            <!-- @FUNCTIONALITY: Chess board implementation with drag & drop -->
+                            <div class="grid grid-cols-8 gap-0 border border-game-border rounded-lg overflow-hidden">
+                                <!-- @MAP: chessBoard.map((row, rowIndex) => row.map((cell, colIndex) => ( -->
+                                <div class="aspect-square bg-amber-100 even:bg-amber-200 flex items-center justify-center text-2xl cursor-pointer hover:bg-opacity-80 transition-colors" data-event="click:selectSquare" data-square="a8" data-mock="true">
+                                    ♜
+                                </div>
+                                <div class="aspect-square bg-amber-200 even:bg-amber-100 flex items-center justify-center text-2xl cursor-pointer hover:bg-opacity-80 transition-colors" data-event="click:selectSquare" data-square="b8" data-mock="true">
+                                    ♞
+                                </div>
+                                <div class="aspect-square bg-amber-100 even:bg-amber-200 flex items-center justify-center text-2xl cursor-pointer hover:bg-opacity-80 transition-colors" data-event="click:selectSquare" data-square="c8" data-mock="true">
+                                    ♝
+                                </div>
+                                <div class="aspect-square bg-amber-200 even:bg-amber-100 flex items-center justify-center text-2xl cursor-pointer hover:bg-opacity-80 transition-colors" data-event="click:selectSquare" data-square="d8" data-mock="true">
+                                    ♛
+                                </div>
+                                <div class="aspect-square bg-amber-100 even:bg-amber-200 flex items-center justify-center text-2xl cursor-pointer hover:bg-opacity-80 transition-colors" data-event="click:selectSquare" data-square="e8" data-mock="true">
+                                    ♚
+                                </div>
+                                <div class="aspect-square bg-amber-200 even:bg-amber-100 flex items-center justify-center text-2xl cursor-pointer hover:bg-opacity-80 transition-colors" data-event="click:selectSquare" data-square="f8" data-mock="true">
+                                    ♝
+                                </div>
+                                <div class="aspect-square bg-amber-100 even:bg-amber-200 flex items-center justify-center text-2xl cursor-pointer hover:bg-opacity-80 transition-colors" data-event="click:selectSquare" data-square="g8" data-mock="true">
+                                    ♞
+                                </div>
+                                <div class="aspect-square bg-amber-200 even:bg-amber-100 flex items-center justify-center text-2xl cursor-pointer hover:bg-opacity-80 transition-colors" data-event="click:selectSquare" data-square="h8" data-mock="true">
+                                    ♜
+                                </div>
+                                <!-- Continue pattern for all 64 squares... showing abbreviated example -->
+                                <!-- @END_MAP ))) -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Game Controls -->
+                    <div class="bg-game-surface border border-game-border rounded-xl p-4">
+                        <div class="flex items-center justify-center space-x-4">
+                            <button class="bg-game-warning hover:bg-opacity-80 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300" data-event="click:offerDraw">
+                                <i class="fas fa-handshake mr-2"></i>
+                                Offer Draw
+                            </button>
+                            <button class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300" data-event="click:resign">
+                                <i class="fas fa-flag mr-2"></i>
+                                Resign
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="space-y-6">
+                    <!-- Players Status -->
+                    <div class="bg-game-surface border border-game-border rounded-xl p-6">
+                        <h3 class="text-lg font-semibold mb-4">Players</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user text-black"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-medium" data-mock="true">Player123</div>
+                                    <div class="text-sm text-gray-400">White pieces</div>
+                                </div>
+                                <div class="w-3 h-3 bg-game-success rounded-full"></div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user text-white"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-medium" data-mock="true">Player456</div>
+                                    <div class="text-sm text-gray-400">Black pieces</div>
+                                </div>
+                                <div class="w-3 h-3 bg-game-success rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Game Chat -->
+                    <div class="bg-game-surface border border-game-border rounded-xl p-6">
+                        <h3 class="text-lg font-semibold mb-4">Game Chat</h3>
+                        <!-- @STATE: messages:array = [] -->
+                        <div class="space-y-3 max-h-64 overflow-y-auto mb-4" data-bind="messages">
+                            <!-- @MAP: messages.map(message => ( -->
+                            <div class="text-sm" data-mock="true">
+                                <span class="font-medium text-game-highlight">Player456:</span>
+                                <span class="text-gray-300 ml-1">Good luck!</span>
+                            </div>
+                            <div class="text-sm" data-mock="true">
+                                <span class="font-medium text-game-highlight">Player123:</span>
+                                <span class="text-gray-300 ml-1">Thanks, you too!</span>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                        
+                        <div class="flex space-x-2">
+                            <input type="text" placeholder="Type a message..." class="flex-1 bg-game-bg border border-game-border rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-game-highlight" data-bind="chatMessage" data-event="keypress:sendMessageOnEnter">
+                            <button class="bg-game-highlight hover:bg-opacity-80 text-white px-4 py-2 rounded-lg transition-all duration-300" data-event="click:sendMessage">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Spectators -->
+                    <div class="bg-game-surface border border-game-border rounded-xl p-6">
+                        <h3 class="text-lg font-semibold mb-4">Spectators (2)</h3>
+                        <div class="space-y-2">
+                            <div class="flex items-center space-x-2 text-sm" data-mock="true">
+                                <div class="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-eye text-xs text-gray-300"></i>
+                                </div>
+                                <span class="text-gray-300">Spectator1</span>
+                            </div>
+                            <div class="flex items-center space-x-2 text-sm" data-mock="true">
+                                <div class="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-eye text-xs text-gray-300"></i>
+                                </div>
+                                <span class="text-gray-300">Spectator2</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: GameBoard -->
+    </main>
+
+    <!-- @COMPONENT: Modal [type, isOpen] -->
+    <div id="modal-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-game-surface border border-game-border rounded-xl p-6 max-w-md w-full">
+            <div id="join-room-modal" class="space-y-4">
+                <h3 class="text-xl font-semibold text-white">Join Game Room</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Room Code</label>
+                        <input type="text" placeholder="Enter 6-character code" class="w-full bg-game-bg border border-game-border rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-game-highlight font-code text-center text-lg tracking-widest uppercase" maxlength="6" data-bind="joinRoomCode">
+                    </div>
+                </div>
+                <div class="flex space-x-3 pt-4">
+                    <button class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg font-medium transition-all duration-300" data-event="click:closeModal">
+                        Cancel
+                    </button>
+                    <button class="flex-1 bg-game-highlight hover:bg-opacity-80 text-white py-2 rounded-lg font-medium transition-all duration-300" data-event="click:joinGameRoom">
+                        Join Game
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: Modal -->
+
+    <!-- @COMPONENT: Toast [type, message, isVisible] -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2">
+        <!-- @MAP: toasts.map(toast => ( -->
+        <div class="hidden bg-game-success text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-3 transform transition-all duration-300" data-toast="success">
+            <i class="fas fa-check-circle"></i>
+            <span data-bind="toast.message" data-mock="true">Player joined the game!</span>
+            <button class="text-white hover:text-gray-300" data-event="click:dismissToast">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <!-- @END_MAP )) -->
+    </div>
+    <!-- @END_COMPONENT: Toast -->
+
+    <script>
+        (() => {
+            // TODO: Implement real-time multiplayer functionality
+            // TODO: Implement game state management
+            // TODO: Implement WebSocket connections for live updates
+            // TODO: Implement move validation and game logic
+            
+            // Basic UI state management for demonstration
+            let currentView = 'game-selection';
+            let gameData = {
+                selectedGame: null,
+                roomCode: null,
+                players: [],
+                gameState: null
+            };
+
+            // View switching
+            function showView(viewId) {
+                document.querySelectorAll('main > div').forEach(el => el.classList.add('hidden'));
+                document.getElementById(viewId).classList.remove('hidden');
+                currentView = viewId;
+            }
+
+            // Game selection handlers
+            document.querySelectorAll('[data-game]').forEach(card => {
+                card.addEventListener('click', () => {
+                    gameData.selectedGame = card.getAttribute('data-game');
+                    // TODO: Initialize game-specific logic
+                    console.log('Selected game:', gameData.selectedGame);
+                });
+            });
+
+            // Quick match simulation
+            document.querySelector('[data-event="click:quickMatch"]')?.addEventListener('click', () => {
+                // TODO: Implement matchmaking logic
+                showToast('success', 'Searching for opponent...');
+                setTimeout(() => {
+                    generateRoomCode();
+                    showView('game-lobby');
+                }, 2000);
+            });
+
+            // Create room
+            document.querySelector('[data-event="click:createRoom"]')?.addEventListener('click', () => {
+                generateRoomCode();
+                showView('game-lobby');
+            });
+
+            // Join room modal
+            document.querySelector('[data-event="click:joinRoom"]')?.addEventListener('click', () => {
+                document.getElementById('modal-overlay').classList.remove('hidden');
+            });
+
+            // Modal handlers
+            document.querySelector('[data-event="click:closeModal"]')?.addEventListener('click', () => {
+                document.getElementById('modal-overlay').classList.add('hidden');
+            });
+
+            document.querySelector('[data-event="click:joinGameRoom"]')?.addEventListener('click', () => {
+                const roomCode = document.querySelector('[data-bind="joinRoomCode"]').value;
+                if (roomCode && roomCode.length === 6) {
+                    gameData.roomCode = roomCode.toUpperCase();
+                    document.getElementById('modal-overlay').classList.add('hidden');
+                    showView('game-lobby');
+                    // TODO: Implement room joining logic
+                } else {
+                    showToast('error', 'Please enter a valid 6-character room code');
+                }
+            });
+
+            // Back navigation
+            document.querySelectorAll('[data-event="click:backToSelection"]').forEach(btn => {
+                btn.addEventListener('click', () => showView('game-selection'));
+            });
+
+            // Start game
+            document.querySelector('[data-event="click:startGame"]')?.addEventListener('click', () => {
+                // TODO: Validate player count and game readiness
+                showView('game-board');
+            });
+
+            // Game controls
+            document.querySelector('[data-event="click:offerDraw"]')?.addEventListener('click', () => {
+                // TODO: Implement draw offer logic
+                showToast('info', 'Draw offer sent to opponent');
+            });
+
+            document.querySelector('[data-event="click:resign"]')?.addEventListener('click', () => {
+                // TODO: Implement resignation logic
+                if (confirm('Are you sure you want to resign?')) {
+                    showToast('info', 'You have resigned from the game');
+                    showView('game-selection');
+                }
+            });
+
+            // Chat functionality
+            document.querySelector('[data-event="keypress:sendMessageOnEnter"]')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendChatMessage();
+                }
+            });
+
+            document.querySelector('[data-event="click:sendMessage"]')?.addEventListener('click', sendChatMessage);
+
+            function sendChatMessage() {
+                const input = document.querySelector('[data-bind="chatMessage"]');
+                const message = input.value.trim();
+                if (message) {
+                    // TODO: Implement real chat messaging
+                    console.log('Sending message:', message);
+                    input.value = '';
+                }
+            }
+
+            // Utility functions
+            function generateRoomCode() {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let result = '';
+                for (let i = 0; i < 6; i++) {
+                    result += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                gameData.roomCode = result;
+                document.querySelectorAll('[data-bind="roomCode"]').forEach(el => {
+                    el.textContent = result;
+                });
+                return result;
+            }
+
+            function showToast(type, message) {
+                // TODO: Implement proper toast system
+                const toast = document.querySelector(`[data-toast="${type}"]`);
+                if (toast) {
+                    toast.querySelector('[data-bind="toast.message"]').textContent = message;
+                    toast.classList.remove('hidden');
+                    setTimeout(() => {
+                        toast.classList.add('hidden');
+                    }, 3000);
+                }
+            }
+
+            // Copy room code functionality
+            document.querySelector('[data-event="click:copyRoomCode"]')?.addEventListener('click', () => {
+                if (gameData.roomCode) {
+                    navigator.clipboard.writeText(gameData.roomCode).then(() => {
+                        showToast('success', 'Room code copied to clipboard!');
+                    });
+                }
+            });
+
+            // Initialize
+            showView('game-selection');
+        })();
+    </script>
+</body>
+</html>
