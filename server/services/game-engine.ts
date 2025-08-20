@@ -14,6 +14,11 @@ export interface GameData {
   turn?: number;
   phase?: string;
   winner?: string;
+  gameOver?: boolean;
+  endReason?: string;
+  inCheck?: boolean;
+  capturedPieces?: { white: string[], black: string[] };
+  moveHistory?: any[];
   [key: string]: any;
 }
 
@@ -229,19 +234,231 @@ class GameEngine {
   }
 
   private processChessMove(gameData: GameData, move: GameMove, playerId: string): GameData {
-    // Basic chess move processing - would need full chess logic
-    const newBoard = JSON.parse(JSON.stringify(gameData.board));
     const { from, to } = move.data;
     
-    newBoard[to.row][to.col] = newBoard[from.row][from.col];
+    // Validate the move
+    if (!this.isValidChessMove(gameData, from, to)) {
+      throw new Error('Invalid chess move');
+    }
+    
+    const newBoard = JSON.parse(JSON.stringify(gameData.board));
+    const piece = newBoard[from.row][from.col];
+    const capturedPiece = newBoard[to.row][to.col];
+    
+    // Make the move
+    newBoard[to.row][to.col] = piece;
     newBoard[from.row][from.col] = null;
     
-    return {
+    // Update captured pieces
+    const newCapturedPieces = { 
+      white: gameData.capturedPieces?.white || [],
+      black: gameData.capturedPieces?.black || []
+    };
+    if (capturedPiece) {
+      const capturingColor = piece === piece.toUpperCase() ? 'white' : 'black';
+      newCapturedPieces[capturingColor].push(capturedPiece);
+    }
+    
+    // Check for pawn promotion
+    if (piece.toLowerCase() === 'p') {
+      if ((piece === 'P' && to.row === 0) || (piece === 'p' && to.row === 7)) {
+        newBoard[to.row][to.col] = piece === 'P' ? 'Q' : 'q'; // Auto-promote to queen
+      }
+    }
+    
+    const newGameData = {
       ...gameData,
       board: newBoard,
       turn: 1 - gameData.turn!,
-      moveHistory: [...(gameData.moveHistory || []), move]
+      moveHistory: [...(gameData.moveHistory || []), move],
+      capturedPieces: newCapturedPieces
     };
+    
+    // Check for checkmate or check
+    const currentColor = newGameData.turn === 0 ? 'white' : 'black';
+    const isInCheck = this.isKingInCheck(newGameData.board!, currentColor);
+    const hasValidMoves = this.hasValidMoves(newGameData, currentColor);
+    
+    if (isInCheck && !hasValidMoves) {
+      newGameData.winner = newGameData.turn === 0 ? 'black' : 'white';
+      newGameData.gameOver = true;
+      newGameData.endReason = 'checkmate';
+    } else if (!hasValidMoves) {
+      newGameData.winner = 'draw';
+      newGameData.gameOver = true;
+      newGameData.endReason = 'stalemate';
+    } else if (isInCheck) {
+      newGameData.inCheck = true;
+    }
+    
+    return newGameData;
+  }
+  
+  private isValidChessMove(gameData: GameData, from: {row: number, col: number}, to: {row: number, col: number}): boolean {
+    const board = gameData.board;
+    const piece = board[from.row][from.col];
+    const targetPiece = board[to.row][to.col];
+    
+    if (!piece) return false;
+    
+    // Can't capture own pieces
+    if (targetPiece && this.isSameColor(piece, targetPiece)) return false;
+    
+    // Check if move is valid for this piece type
+    if (!this.isValidPieceMove(board, piece, from, to)) return false;
+    
+    // Check if move would put own king in check
+    const testBoard = JSON.parse(JSON.stringify(board));
+    testBoard[to.row][to.col] = piece;
+    testBoard[from.row][from.col] = null;
+    
+    const color = piece === piece.toUpperCase() ? 'white' : 'black';
+    return !this.isKingInCheck(testBoard, color);
+  }
+  
+  private isValidPieceMove(board: any[][], piece: string, from: {row: number, col: number}, to: {row: number, col: number}): boolean {
+    const dr = to.row - from.row;
+    const dc = to.col - from.col;
+    const absDr = Math.abs(dr);
+    const absDc = Math.abs(dc);
+    
+    switch (piece.toLowerCase()) {
+      case 'p': // Pawn
+        return this.isValidPawnMove(board, piece, from, to, dr, dc);
+      case 'r': // Rook
+        return (dr === 0 || dc === 0) && this.isPathClear(board, from, to);
+      case 'n': // Knight
+        return (absDr === 2 && absDc === 1) || (absDr === 1 && absDc === 2);
+      case 'b': // Bishop
+        return absDr === absDc && this.isPathClear(board, from, to);
+      case 'q': // Queen
+        return (dr === 0 || dc === 0 || absDr === absDc) && this.isPathClear(board, from, to);
+      case 'k': // King
+        return absDr <= 1 && absDc <= 1;
+      default:
+        return false;
+    }
+  }
+  
+  private isValidPawnMove(board: any[][], piece: string, from: {row: number, col: number}, to: {row: number, col: number}, dr: number, dc: number): boolean {
+    const isWhite = piece === piece.toUpperCase();
+    const direction = isWhite ? -1 : 1;
+    const startRow = isWhite ? 6 : 1;
+    const targetPiece = board[to.row][to.col];
+    
+    // Forward move
+    if (dc === 0) {
+      if (dr === direction && !targetPiece) return true;
+      if (from.row === startRow && dr === 2 * direction && !targetPiece && !board[from.row + direction][from.col]) return true;
+    }
+    // Diagonal capture
+    else if (Math.abs(dc) === 1 && dr === direction && targetPiece && !this.isSameColor(piece, targetPiece)) {
+      return true;
+    }
+    
+    return false;
+  }
+  
+  private isPathClear(board: any[][], from: {row: number, col: number}, to: {row: number, col: number}): boolean {
+    const dr = Math.sign(to.row - from.row);
+    const dc = Math.sign(to.col - from.col);
+    
+    let r = from.row + dr;
+    let c = from.col + dc;
+    
+    while (r !== to.row || c !== to.col) {
+      if (board[r][c] !== null) return false;
+      r += dr;
+      c += dc;
+    }
+    
+    return true;
+  }
+  
+  private isSameColor(piece1: string, piece2: string): boolean {
+    return (piece1 === piece1.toUpperCase()) === (piece2 === piece2.toUpperCase());
+  }
+  
+  private isKingInCheck(board: any[][], color: string): boolean {
+    // Find the king
+    const king = color === 'white' ? 'K' : 'k';
+    let kingPos = null;
+    
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        if (board[r][c] === king) {
+          kingPos = { row: r, col: c };
+          break;
+        }
+      }
+      if (kingPos) break;
+    }
+    
+    if (!kingPos) return false;
+    
+    // Check if any enemy piece can attack the king
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const piece = board[r][c];
+        if (piece && !this.isSameColor(piece, king)) {
+          if (this.canPieceAttack(board, piece, { row: r, col: c }, kingPos)) {
+            return true;
+          }
+        }
+      }
+    }
+    
+    return false;
+  }
+  
+  private canPieceAttack(board: any[][], piece: string, from: {row: number, col: number}, to: {row: number, col: number}): boolean {
+    const dr = to.row - from.row;
+    const dc = to.col - from.col;
+    const absDr = Math.abs(dr);
+    const absDc = Math.abs(dc);
+    
+    switch (piece.toLowerCase()) {
+      case 'p': // Pawn
+        const isWhite = piece === piece.toUpperCase();
+        const direction = isWhite ? -1 : 1;
+        return dr === direction && absDc === 1;
+      case 'r': // Rook
+        return (dr === 0 || dc === 0) && this.isPathClear(board, from, to);
+      case 'n': // Knight
+        return (absDr === 2 && absDc === 1) || (absDr === 1 && absDc === 2);
+      case 'b': // Bishop
+        return absDr === absDc && this.isPathClear(board, from, to);
+      case 'q': // Queen
+        return (dr === 0 || dc === 0 || absDr === absDc) && this.isPathClear(board, from, to);
+      case 'k': // King
+        return absDr <= 1 && absDc <= 1;
+      default:
+        return false;
+    }
+  }
+  
+  private hasValidMoves(gameData: GameData, color: string): boolean {
+    const board = gameData.board;
+    if (!board) return false;
+    
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const piece = board[r][c];
+        if (piece && ((color === 'white' && piece === piece.toUpperCase()) || (color === 'black' && piece === piece.toLowerCase()))) {
+          // Try all possible moves for this piece
+          for (let tr = 0; tr < 8; tr++) {
+            for (let tc = 0; tc < 8; tc++) {
+              if (r === tr && c === tc) continue;
+              if (this.isValidChessMove(gameData, { row: r, col: c }, { row: tr, col: tc })) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    return false;
   }
 
   private processCheckersMove(gameData: GameData, move: GameMove, playerId: string): GameData {

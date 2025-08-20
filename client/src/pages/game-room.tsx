@@ -364,42 +364,92 @@ export default function GameRoom() {
   };
 
   const renderChessBoard = () => {
+    // Create display board with proper orientation for black player
+    const displayBoard = [];
+    for (let displayRow = 0; displayRow < 8; displayRow++) {
+      const actualRow = getActualRow(displayRow);
+      const boardRow = [];
+      for (let displayCol = 0; displayCol < 8; displayCol++) {
+        const actualCol = getActualCol(displayCol);
+        boardRow.push({
+          piece: gameState?.board?.[actualRow]?.[actualCol],
+          actualRow,
+          actualCol,
+          displayRow,
+          displayCol
+        });
+      }
+      displayBoard.push(boardRow);
+    }
+
     return (
       <Card className="bg-game-navy/50 backdrop-blur-sm border-gray-700/50">
         <CardContent className="p-6">
+          {/* Chess Game Status */}
+          {gameState && (
+            <div className="mb-4 text-center">
+              {gameState.gameOver ? (
+                <div className="text-lg font-bold">
+                  {gameState.winner === 'draw' ? (
+                    <span className="text-yellow-400">🤝 Game Drawn - {gameState.endReason}</span>
+                  ) : (
+                    <span className="text-green-400">
+                      🏆 {gameState.winner === 'white' ? 'White' : 'Black'} Wins by {gameState.endReason}!
+                    </span>
+                  )}
+                </div>
+              ) : gameState.inCheck ? (
+                <div className="text-red-400 font-bold animate-pulse">
+                  ⚠️ {gameState.turn === 0 ? 'White' : 'Black'} King is in Check!
+                </div>
+              ) : (
+                <div className="text-gray-300">
+                  {gameState.turn === 0 ? 'White' : 'Black'} to move
+                </div>
+              )}
+            </div>
+          )}
           <div className="aspect-square max-w-lg mx-auto">
             <div className="grid grid-cols-8 gap-0 border-2 border-gray-600 rounded-lg overflow-hidden">
-              {gameState?.board?.map((row: any[], rowIndex: number) =>
-                row.map((piece: any, colIndex: number) => (
+              {displayBoard.map((row, displayRowIndex) =>
+                row.map((cell, displayColIndex) => (
                   <div
-                    key={`${rowIndex}-${colIndex}`}
+                    key={`${displayRowIndex}-${displayColIndex}`}
                     className={`aspect-square flex items-center justify-center text-2xl cursor-pointer hover:bg-game-blue/20 transition-colors ${
-                      (rowIndex + colIndex) % 2 === 0 ? 'bg-amber-100' : 'bg-amber-800'
+                      (displayRowIndex + displayColIndex) % 2 === 0 ? 'bg-amber-100' : 'bg-amber-800'
                     } ${
-                      selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex ? 'ring-4 ring-blue-500' : ''
+                      selectedSquare?.row === cell.actualRow && selectedSquare?.col === cell.actualCol ? 'ring-4 ring-blue-500' : ''
                     } ${
-                      dragOverSquare?.row === rowIndex && dragOverSquare?.col === colIndex ? 'ring-4 ring-green-500 bg-green-200/30' : ''
+                      dragOverSquare?.row === cell.actualRow && dragOverSquare?.col === cell.actualCol ? 'ring-4 ring-green-500 bg-green-200/30' : ''
                     }`}
-                    onClick={() => handleChessSquareClick(rowIndex, colIndex)}
-                    onDragOver={(e) => handleDragOver(e, rowIndex, colIndex)}
-                    onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
+                    onClick={() => handleChessSquareClick(cell.actualRow, cell.actualCol)}
+                    onDragOver={(e) => handleDragOver(e, cell.actualRow, cell.actualCol)}
+                    onDrop={(e) => handleDrop(e, cell.actualRow, cell.actualCol)}
                     onDragLeave={() => setDragOverSquare(null)}
-                    data-testid={`chess-square-${rowIndex}-${colIndex}`}
+                    data-testid={`chess-square-${cell.actualRow}-${cell.actualCol}`}
                   >
-                    {piece && (
+                    {cell.piece && (
                       <span 
-                        className={`${piece === piece?.toUpperCase() ? 'text-white' : 'text-black'} select-none ${
-                          draggedPiece?.row === rowIndex && draggedPiece?.col === colIndex ? 'opacity-50' : ''
-                        }`}
-                        draggable={piece && isPlayerPiece(piece) && isCurrentPlayerTurn()}
-                        onDragStart={(e) => handleDragStart(e, rowIndex, colIndex, piece)}
+                        className={`${
+                          cell.piece === cell.piece?.toUpperCase() ? 'text-white drop-shadow-lg' : 'text-black'
+                        } select-none font-bold border-2 border-gray-800/30 rounded-md p-1 ${
+                          draggedPiece?.row === cell.actualRow && draggedPiece?.col === cell.actualCol ? 'opacity-50' : ''
+                        } ${isPlayerPiece(cell.piece) ? 'hover:scale-110 transition-transform' : ''}`}
+                        style={{
+                          cursor: cell.piece && isPlayerPiece(cell.piece) && isCurrentPlayerTurn() ? 'grab' : 'default',
+                          textShadow: cell.piece === cell.piece?.toUpperCase() 
+                            ? '2px 2px 4px rgba(0,0,0,0.8), -1px -1px 2px rgba(255,255,255,0.3)' 
+                            : '1px 1px 2px rgba(255,255,255,0.8), -1px -1px 2px rgba(0,0,0,0.5)',
+                          filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.5))'
+                        }}
+                        draggable={cell.piece && isPlayerPiece(cell.piece) && isCurrentPlayerTurn()}
+                        onDragStart={(e) => handleDragStart(e, cell.actualRow, cell.actualCol, cell.piece)}
                         onDragEnd={() => handleDragEnd()}
-                        onTouchStart={(e) => handleTouchStart(e, rowIndex, colIndex, piece)}
+                        onTouchStart={(e) => handleTouchStart(e, cell.actualRow, cell.actualCol, cell.piece)}
                         onTouchMove={(e) => handleTouchMove(e)}
                         onTouchEnd={(e) => handleTouchEnd(e)}
-                        style={{ cursor: piece && isPlayerPiece(piece) && isCurrentPlayerTurn() ? 'grab' : 'default' }}
                       >
-                        {getChessPieceSymbol(piece)}
+                        {getChessPieceSymbol(cell.piece)}
                       </span>
                     )}
                   </div>
@@ -746,7 +796,7 @@ export default function GameRoom() {
       const square = element?.closest('[data-testid*=\"square\"]');
       if (square) {
         const testId = square.getAttribute('data-testid');
-        const match = testId?.match(/(\\d+)-(\\d+)/);
+        const match = testId?.match(/(\d+)-(\d+)/);
         if (match) {
           const row = parseInt(match[1]);
           const col = parseInt(match[2]);
@@ -767,7 +817,7 @@ export default function GameRoom() {
     
     if (square && draggedPiece) {
       const testId = square.getAttribute('data-testid');
-      const match = testId?.match(/(\\d+)-(\\d+)/);
+      const match = testId?.match(/(\d+)-(\d+)/);
       if (match) {
         const row = parseInt(match[1]);
         const col = parseInt(match[2]);

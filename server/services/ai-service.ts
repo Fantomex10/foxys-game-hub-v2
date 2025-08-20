@@ -199,6 +199,7 @@ class AIService {
     const moves: GameMove[] = [];
     const board = gameData.board;
     const isWhiteTurn = gameData.turn === 0;
+    const color = isWhiteTurn ? 'white' : 'black';
     
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
@@ -208,8 +209,8 @@ class AIService {
         const isWhitePiece = piece === piece.toUpperCase();
         if (isWhitePiece !== isWhiteTurn) continue;
         
-        // Generate moves for this piece (simplified)
-        const pieceMoves = this.generatePieceMoves(board, row, col, piece);
+        // Generate all possible moves for this piece
+        const pieceMoves = this.generateChessPieceMoves(gameData, row, col, piece);
         moves.push(...pieceMoves);
       }
     }
@@ -217,31 +218,82 @@ class AIService {
     return moves;
   }
 
-  private generatePieceMoves(board: any[][], row: number, col: number, piece: string): GameMove[] {
+  private generateChessPieceMoves(gameData: GameData, row: number, col: number, piece: string): GameMove[] {
     const moves: GameMove[] = [];
+    const board = gameData.board;
     
-    // Simplified move generation - just try adjacent squares
-    for (let dr = -1; dr <= 1; dr++) {
-      for (let dc = -1; dc <= 1; dc++) {
-        const newRow = row + dr;
-        const newCol = col + dc;
+    // Generate moves based on piece type
+    const directions = this.getPieceDirections(piece);
+    const isSliding = ['r', 'b', 'q'].includes(piece.toLowerCase());
+    
+    for (const [dr, dc] of directions) {
+      let distance = 1;
+      const maxDistance = isSliding ? 8 : 1;
+      
+      while (distance <= maxDistance) {
+        const newRow = row + dr * distance;
+        const newCol = col + dc * distance;
         
-        if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
-          const targetPiece = board[newRow][newCol];
-          if (!targetPiece || this.isOpponentPiece(piece, targetPiece)) {
-            moves.push({
-              type: 'move',
-              data: {
-                from: { row, col },
-                to: { row: newRow, col: newCol }
-              }
-            });
-          }
+        if (newRow < 0 || newRow >= 8 || newCol < 0 || newCol >= 8) break;
+        
+        const targetPiece = board[newRow][newCol];
+        
+        // Can't move to square with own piece
+        if (targetPiece && this.isSameColor(piece, targetPiece)) break;
+        
+        // Test if this move is legal (doesn't put king in check)
+        if (this.isLegalMove(gameData, { row, col }, { row: newRow, col: newCol })) {
+          moves.push({
+            type: 'chess_move',
+            data: {
+              from: { row, col },
+              to: { row: newRow, col: newCol }
+            }
+          });
         }
+        
+        // Stop if we hit a piece
+        if (targetPiece) break;
+        
+        distance++;
       }
     }
     
     return moves;
+  }
+  
+  private getPieceDirections(piece: string): number[][] {
+    switch (piece.toLowerCase()) {
+      case 'p': // Pawn
+        const isWhite = piece === piece.toUpperCase();
+        const direction = isWhite ? -1 : 1;
+        return [[direction, 0], [direction, -1], [direction, 1]];
+      case 'r': // Rook
+        return [[0, 1], [0, -1], [1, 0], [-1, 0]];
+      case 'n': // Knight
+        return [[2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [1, -2], [-1, 2], [-1, -2]];
+      case 'b': // Bishop
+        return [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+      case 'q': // Queen
+        return [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+      case 'k': // King
+        return [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+      default:
+        return [];
+    }
+  }
+  
+  private isLegalMove(gameData: GameData, from: {row: number, col: number}, to: {row: number, col: number}): boolean {
+    // This should use the game engine's validation logic
+    // For now, basic validation
+    const board = gameData.board;
+    const piece = board[from.row][from.col];
+    const target = board[to.row][to.col];
+    
+    if (!piece) return false;
+    if (target && this.isSameColor(piece, target)) return false;
+    
+    return true;
   }
 
   private getValidCheckersMove(gameData: GameData): GameMove[] {
@@ -317,10 +369,12 @@ class AIService {
     return gameData.board[to.row][to.col] !== null;
   }
 
+  private isSameColor(piece1: string, piece2: string): boolean {
+    return (piece1 === piece1.toUpperCase()) === (piece2 === piece2.toUpperCase());
+  }
+  
   private isOpponentPiece(piece1: string, piece2: string): boolean {
-    const isWhite1 = piece1 === piece1.toUpperCase();
-    const isWhite2 = piece2 === piece2.toUpperCase();
-    return isWhite1 !== isWhite2;
+    return !this.isSameColor(piece1, piece2);
   }
 
   private evaluateChessMoves(gameData: GameData, moves: GameMove[]): GameMove {
