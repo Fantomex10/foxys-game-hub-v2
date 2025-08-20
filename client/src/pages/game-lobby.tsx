@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlayerCard } from "@/components/player-card";
 import { Chat } from "@/components/chat";
 import { useToast } from "@/hooks/use-toast";
@@ -65,6 +66,26 @@ export default function GameLobby() {
     }
   });
 
+  const changeGameTypeMutation = useMutation({
+    mutationFn: async (newGameType: string) => {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'change_game_type',
+          gameType: newGameType
+        }));
+        return true;
+      }
+      throw new Error('WebSocket not connected');
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to Change Game Type',
+        description: error.message || 'Unable to change the game type. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  });
+
   useEffect(() => {
     const userId = localStorage.getItem("userId");
     const username = localStorage.getItem("username");
@@ -103,7 +124,8 @@ export default function GameLobby() {
           case 'user_joined':
           case 'user_left':
           case 'participant_updated':
-            // Refresh room data when participants change
+          case 'game_type_changed':
+            // Refresh room data when participants change or game type changes
             queryClient.invalidateQueries({ queryKey: ['/api/rooms', roomId] });
             break;
             
@@ -253,10 +275,44 @@ export default function GameLobby() {
                 </p>
               </div>
               <div className="text-right">
-                <div className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm font-medium inline-block mb-2">
-                  <span className="mr-1">{getGameTypeIcon(room.gameType)}</span>
-                  {room.gameType.charAt(0).toUpperCase() + room.gameType.slice(1)}
-                </div>
+                {isHost ? (
+                  <div className="mb-2">
+                    <Select value={room.gameType} onValueChange={(value) => changeGameTypeMutation.mutate(value)}>
+                      <SelectTrigger className="w-[200px] bg-blue-500/20 text-blue-400 border-blue-500/30 focus:border-blue-400" data-testid="select-game-type">
+                        <SelectValue>
+                          <span className="mr-1">{getGameTypeIcon(room.gameType)}</span>
+                          {room.gameType.charAt(0).toUpperCase() + room.gameType.slice(1)}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="chess" data-testid="option-chess">
+                          <span className="mr-1">♔</span> Chess
+                        </SelectItem>
+                        <SelectItem value="checkers" data-testid="option-checkers">
+                          <span className="mr-1">⚫</span> Checkers
+                        </SelectItem>
+                        <SelectItem value="hearts" data-testid="option-hearts">
+                          <span className="mr-1">♥</span> Hearts
+                        </SelectItem>
+                        <SelectItem value="spades" data-testid="option-spades">
+                          <span className="mr-1">♠</span> Spades
+                        </SelectItem>
+                        <SelectItem value="crazy8s" data-testid="option-crazy8s">
+                          <span className="mr-1">🎴</span> Crazy 8s
+                        </SelectItem>
+                        <SelectItem value="gofish" data-testid="option-gofish">
+                          <span className="mr-1">🎣</span> Go Fish
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">Host can change game type</p>
+                  </div>
+                ) : (
+                  <div className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm font-medium inline-block mb-2">
+                    <span className="mr-1">{getGameTypeIcon(room.gameType)}</span>
+                    {room.gameType.charAt(0).toUpperCase() + room.gameType.slice(1)}
+                  </div>
+                )}
                 <p className="text-gray-400 text-sm" data-testid="text-player-count">
                   {players.length}/{room.maxPlayers} Players
                 </p>

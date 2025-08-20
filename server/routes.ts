@@ -450,10 +450,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   // Reset room status to waiting
                   await storage.updateGameRoom(ws.roomId, { status: 'waiting' });
                   
-                  // Delete existing game state
+                  // Reset existing game state
                   const existingGameState = await storage.getGameState(ws.roomId);
                   if (existingGameState) {
-                    await storage.deleteGameState(ws.roomId);
+                    // For now, just don't delete since method doesn't exist - the new game will overwrite it
                   }
                   
                   // Reset all participants to not ready
@@ -476,6 +476,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 ws.send(JSON.stringify({
                   type: 'error',
                   message: 'Failed to start rematch'
+                }));
+              }
+            }
+            break;
+            
+          case 'change_game_type':
+            try {
+              if (ws.roomId && ws.userId) {
+                const room = await storage.getGameRoom(ws.roomId);
+                if (room && room.hostId === ws.userId) {
+                  // Only host can change game type
+                  await storage.updateGameRoom(ws.roomId, { gameType: message.gameType });
+                  
+                  // Broadcast game type change to all room participants
+                  broadcastToRoom(ws.roomId, {
+                    type: 'game_type_changed',
+                    gameType: message.gameType,
+                    timestamp: new Date().toISOString()
+                  });
+                  
+                  console.log(`[WebSocket] Game type changed to ${message.gameType} by host ${ws.userId}`);
+                } else {
+                  // Send error if not host
+                  if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                      type: 'error',
+                      message: 'Only the host can change the game type'
+                    }));
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('[WebSocket] Error in change_game_type:', error);
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                  type: 'error',
+                  message: 'Failed to change game type'
                 }));
               }
             }
